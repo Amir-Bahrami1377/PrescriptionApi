@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Prescription.IntegrationTests.Fakes;
@@ -26,6 +25,26 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     public async Task InitializeAsync()
     {
         await Task.WhenAll(_postgres.StartAsync(), _redis.StartAsync());
+
+        // Program.cs reads configuration into local variables before builder.Build(), which is
+        // earlier than WebApplicationFactory's ConfigureAppConfiguration override gets spliced in
+        // for the minimal-hosting Program.cs shape — so an in-memory config source here is too
+        // late. Environment variables aren't: WebApplicationBuilder.CreateBuilder(args) reads them
+        // immediately via AddEnvironmentVariables(), before any of Program.cs's own code runs, as
+        // long as they're set (as here) before the host is ever created.
+        Environment.SetEnvironmentVariable("ConnectionStrings__Postgres", _postgres.GetConnectionString());
+        Environment.SetEnvironmentVariable("ConnectionStrings__Redis", _redis.GetConnectionString());
+        Environment.SetEnvironmentVariable("Jwt__SigningKey", "AZLkvtSOfz2ng8oE0jHBx2eE30RAoNlCs1k2ST/zfHU=");
+        Environment.SetEnvironmentVariable("ColumnEncryption__Key", "SdgFjsUfDwN7byuQOJumTSTfS5cpS3nEnVGy7lihJ4Y=");
+        Environment.SetEnvironmentVariable("MeliPayamak__Username", "test");
+        Environment.SetEnvironmentVariable("MeliPayamak__Password", "test");
+        Environment.SetEnvironmentVariable("MeliPayamak__BodyId", "0");
+        Environment.SetEnvironmentVariable("MeliPayamak__SenderNumber", "50002000");
+        Environment.SetEnvironmentVariable("ZarinPal__MerchantId", "00000000-0000-0000-0000-000000000000");
+        Environment.SetEnvironmentVariable("MinIO__Endpoint", "localhost:9000");
+        Environment.SetEnvironmentVariable("MinIO__AccessKey", "minioadmin");
+        Environment.SetEnvironmentVariable("MinIO__SecretKey", "minioadmin");
+        Environment.SetEnvironmentVariable("MinIO__UseSsl", "false");
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -36,26 +55,6 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-
-        builder.ConfigureAppConfiguration((_, config) =>
-        {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["ConnectionStrings:Postgres"] = _postgres.GetConnectionString(),
-                ["ConnectionStrings:Redis"] = _redis.GetConnectionString(),
-                ["Jwt:SigningKey"] = "AZLkvtSOfz2ng8oE0jHBx2eE30RAoNlCs1k2ST/zfHU=",
-                ["ColumnEncryption:Key"] = "SdgFjsUfDwN7byuQOJumTSTfS5cpS3nEnVGy7lihJ4Y=",
-                ["MeliPayamak:Username"] = "test",
-                ["MeliPayamak:Password"] = "test",
-                ["MeliPayamak:BodyId"] = "0",
-                ["MeliPayamak:SenderNumber"] = "50002000",
-                ["ZarinPal:MerchantId"] = "00000000-0000-0000-0000-000000000000",
-                ["MinIO:Endpoint"] = "localhost:9000",
-                ["MinIO:AccessKey"] = "minioadmin",
-                ["MinIO:SecretKey"] = "minioadmin",
-                ["MinIO:UseSsl"] = "false",
-            });
-        });
 
         builder.ConfigureTestServices(services =>
         {
