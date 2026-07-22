@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using Prescription.Api.Auth;
 using Prescription.Api.Extensions;
 using Prescription.Api.Middleware;
+using Prescription.Api.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Catalog;
 using Prescription.Modules.Catalog.Infrastructure.Persistence;
@@ -26,6 +27,7 @@ using Prescription.Modules.Ticketing.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Behaviors;
 using Prescription.SharedKernel.Security;
+using Scalar.AspNetCore;
 using Serilog;
 using StackExchange.Redis;
 
@@ -48,7 +50,7 @@ var moduleAssemblies = new[]
     typeof(Prescription.Modules.Ticketing.TicketingModule).Assembly,
 };
 
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
@@ -140,6 +142,7 @@ app.UseExceptionHandler(_ => { });
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseHttpsRedirection();
