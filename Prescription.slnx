@@ -1,0 +1,47 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/Prescription.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Catalog/">
+    <Project Path="src/Modules/Catalog/Prescription.Modules.Catalog.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Consultation/">
+    <Project Path="src/Modules/Consultation/Prescription.Modules.Consultation.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/FileStorage/">
+    <Project Path="src/Modules/FileStorage/Prescription.Modules.FileStorage.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Prescription.Modules.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Notifications/">
+    <Project Path="src/Modules/Notifications/Prescription.Modules.Notifications.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Orders/">
+    <Project Path="src/Modules/Orders/Prescription.Modules.Orders.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Payments/">
+    <Project Path="src/Modules/Payments/Prescription.Modules.Payments.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Ticketing/">
+    <Project Path="src/Modules/Ticketing/Prescription.Modules.Ticketing.csproj" />
+  </Folder>
+  <Folder Name="/src/SharedKernel/">
+    <Project Path="src/SharedKernel/Prescription.SharedKernel.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/IntegrationTests/">
+    <Project Path="tests/IntegrationTests/Prescription.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Modules.Identity.Tests/">
+    <Project Path="tests/Modules.Identity.Tests/Prescription.Modules.Identity.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Modules.Orders.Tests/">
+    <Project Path="tests/Modules.Orders.Tests/Prescription.Modules.Orders.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Modules.Payments.Tests/">
+    <Project Path="tests/Modules.Payments.Tests/Prescription.Modules.Payments.Tests.csproj" />
+  </Folder>
+</Solution>
