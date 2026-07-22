@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\SharedKernel\Prescription.SharedKernel.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Polly" />
+    <PackageReference Include="Microsoft.Extensions.Http.Polly" />
+    <PackageReference Include="Hangfire.AspNetCore" />
+    <!-- Pinned above Hangfire's transitive 11.0.1 to close GHSA-5crp-9r3c-p9vr -->
+    <PackageReference Include="Newtonsoft.Json" />
+  </ItemGroup>
+
+</Project>
