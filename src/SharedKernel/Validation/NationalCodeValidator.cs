@@ -1,4 +1,4 @@
-namespace Prescription.Modules.Identity.Domain;
+namespace Prescription.SharedKernel.Validation;
 
 public static class NationalCodeValidator
 {

@@ -1,4 +1,5 @@
 using FluentValidation;
+using Prescription.SharedKernel.Validation;
 
 namespace Prescription.Modules.Orders.Features.CreateOrder;
 
@@ -28,5 +29,21 @@ public sealed class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             .Must(ct => AllowedContentTypes.Contains(ct))
             .When(x => x.FileContent is not null)
             .WithMessage("فرمت فایل باید JPEG، PNG یا PDF باشد.");
+
+        RuleFor(x => x.BasicInsurance).IsInEnum();
+        RuleFor(x => x.SupplementaryInsurance).IsInEnum();
+
+        When(x => x.IsForThirdParty, () =>
+        {
+            RuleFor(x => x.ThirdPartyNationalCode)
+                .NotEmpty()
+                .Must(nationalCode => NationalCodeValidator.IsValid(nationalCode!))
+                .WithMessage("کد ملی فرد مورد نظر معتبر نیست.");
+
+            RuleFor(x => x.ThirdPartyPhoneNumber)
+                .NotEmpty()
+                .Matches(@"^(?:\+98|0)?9\d{9}$")
+                .WithMessage("شماره موبایل فرد مورد نظر معتبر نیست.");
+        });
     }
 }

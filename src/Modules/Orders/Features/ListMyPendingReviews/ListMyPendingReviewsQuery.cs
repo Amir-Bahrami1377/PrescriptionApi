@@ -1,4 +1,5 @@
 using MediatR;
+using Prescription.Modules.Orders.Domain;
 
 namespace Prescription.Modules.Orders.Features.ListMyPendingReviews;
 
@@ -11,5 +12,8 @@ public sealed record MyPendingReviewDto(
     IReadOnlyCollection<Guid> LabTestIds,
     string? CustomerNote,
     bool HasAttachment,
+    BasicInsuranceType BasicInsurance,
+    SupplementaryInsuranceType SupplementaryInsurance,
+    bool IsForThirdParty,
     DateTimeOffset ClaimExpiresAtUtc,
     DateTimeOffset CreatedAtUtc);

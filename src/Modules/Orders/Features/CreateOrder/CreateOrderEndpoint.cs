@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using Prescription.Modules.Orders.Domain;
 using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.Orders.Features.CreateOrder;
@@ -46,7 +47,29 @@ public sealed class CreateOrderEndpoint : IEndpoint
                 var file = form.Files.GetFile("file");
                 await using var stream = file?.OpenReadStream();
 
-                var command = new CreateOrderCommand(customerId, labTestIds, note, stream, file?.FileName, file?.ContentType);
+                var basicInsurance = Enum.TryParse<BasicInsuranceType>(form["basicInsurance"], ignoreCase: true, out var basic)
+                    ? basic
+                    : BasicInsuranceType.None;
+                var supplementaryInsurance = Enum.TryParse<SupplementaryInsuranceType>(form["supplementaryInsurance"], ignoreCase: true, out var supplementary)
+                    ? supplementary
+                    : SupplementaryInsuranceType.None;
+
+                var isForThirdParty = bool.TryParse(form["isForThirdParty"], out var forThirdParty) && forThirdParty;
+                var thirdPartyNationalCode = form["thirdPartyNationalCode"].ToString() is { Length: > 0 } nationalCode ? nationalCode : null;
+                var thirdPartyPhoneNumber = form["thirdPartyPhoneNumber"].ToString() is { Length: > 0 } phoneNumber ? phoneNumber : null;
+
+                var command = new CreateOrderCommand(
+                    customerId,
+                    labTestIds,
+                    note,
+                    stream,
+                    file?.FileName,
+                    file?.ContentType,
+                    basicInsurance,
+                    supplementaryInsurance,
+                    isForThirdParty,
+                    thirdPartyNationalCode,
+                    thirdPartyPhoneNumber);
                 var response = await sender.Send(command, cancellationToken);
 
                 return Results.Created($"/api/orders/{response.OrderId}", response);

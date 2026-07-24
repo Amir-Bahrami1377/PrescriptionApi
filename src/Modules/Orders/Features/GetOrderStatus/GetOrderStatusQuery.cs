@@ -1,4 +1,5 @@
 using MediatR;
+using Prescription.Modules.Orders.Domain;
 
 namespace Prescription.Modules.Orders.Features.GetOrderStatus;
 
@@ -13,5 +14,10 @@ public sealed record OrderStatusDto(
     string? PrescriptionReferenceNumber,
     string? PaymentReferenceId,
     bool HasResult,
+    BasicInsuranceType BasicInsurance,
+    SupplementaryInsuranceType SupplementaryInsurance,
+    bool IsForThirdParty,
+    string? ThirdPartyNationalCode,
+    string? ThirdPartyPhoneNumber,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? CompletedAtUtc);

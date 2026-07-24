@@ -1,10 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
 using Prescription.SharedKernel.Abstractions;
+using Prescription.SharedKernel.Security;
 
 namespace Prescription.Modules.Orders.Infrastructure.Persistence;
 
-public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) : DbContext(options), IUnitOfWork
+public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options, IColumnEncryptor columnEncryptor)
+    : DbContext(options), IUnitOfWork
 {
     public DbSet<Order> Orders => Set<Order>();
 
@@ -24,6 +26,17 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) :
             builder.Property(o => o.PaymentAuthority).HasMaxLength(100);
             builder.Property(o => o.PaymentReferenceId).HasMaxLength(100);
             builder.Property(o => o.ResultFileKey).HasMaxLength(500);
+
+            builder.Property(o => o.BasicInsurance).HasConversion<string>().HasMaxLength(30);
+            builder.Property(o => o.SupplementaryInsurance).HasConversion<string>().HasMaxLength(30);
+            builder.Property(o => o.ThirdPartyPhoneNumber).HasMaxLength(20);
+
+            // Same column-level encryption as the customer's own national code in Identity.
+            builder.Property(o => o.ThirdPartyNationalCode)
+                .HasConversion(
+                    plain => plain == null ? null : columnEncryptor.Encrypt(plain),
+                    cipher => cipher == null ? null : columnEncryptor.Decrypt(cipher))
+                .HasMaxLength(500);
 
             builder.HasIndex(o => o.CustomerId);
             builder.HasIndex(o => o.Status);

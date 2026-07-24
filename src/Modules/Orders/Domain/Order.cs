@@ -20,6 +20,14 @@ public sealed class Order : AuditableEntity
     public string? CustomerNote { get; private set; }
     public string? CustomerUploadedFileKey { get; private set; }
 
+    public BasicInsuranceType BasicInsurance { get; private set; }
+    public SupplementaryInsuranceType SupplementaryInsurance { get; private set; }
+
+    /// <summary>When true, the order was placed on someone else's behalf — that person is not required to be a registered user, this is order metadata only.</summary>
+    public bool IsForThirdParty { get; private set; }
+    public string? ThirdPartyNationalCode { get; private set; }
+    public string? ThirdPartyPhoneNumber { get; private set; }
+
     public OrderStatus Status { get; private set; }
 
     public Guid? DoctorId { get; private set; }
@@ -38,7 +46,14 @@ public sealed class Order : AuditableEntity
     public string? ResultFileKey { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
-    public static Order Create(Guid customerId, IEnumerable<Guid> labTestIds, string? customerNote, string? customerUploadedFileKey)
+    public static Order Create(
+        Guid customerId,
+        IEnumerable<Guid> labTestIds,
+        string? customerNote,
+        string? customerUploadedFileKey,
+        BasicInsuranceType basicInsurance,
+        SupplementaryInsuranceType supplementaryInsurance,
+        ThirdPartyBeneficiary? thirdParty)
     {
         var distinctTestIds = labTestIds.Distinct().ToList();
         if (distinctTestIds.Count == 0)
@@ -46,11 +61,22 @@ public sealed class Order : AuditableEntity
             throw new DomainException("انتخاب حداقل یک آزمایش الزامی است.");
         }
 
+        if (thirdParty is not null
+            && (string.IsNullOrWhiteSpace(thirdParty.NationalCode) || string.IsNullOrWhiteSpace(thirdParty.PhoneNumber)))
+        {
+            throw new DomainException("برای ثبت آزمایش برای فرد دیگر، کد ملی و شماره موبایل او الزامی است.");
+        }
+
         var order = new Order
         {
             CustomerId = customerId,
             CustomerNote = customerNote,
             CustomerUploadedFileKey = customerUploadedFileKey,
+            BasicInsurance = basicInsurance,
+            SupplementaryInsurance = supplementaryInsurance,
+            IsForThirdParty = thirdParty is not null,
+            ThirdPartyNationalCode = thirdParty?.NationalCode,
+            ThirdPartyPhoneNumber = thirdParty?.PhoneNumber,
             Status = OrderStatus.Draft,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };

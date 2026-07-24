@@ -9,7 +9,14 @@ public class OrderTests
     private const long DoctorFee = 500_000;
 
     private static Order CreateOrder() =>
-        Order.Create(Guid.NewGuid(), [Guid.NewGuid(), Guid.NewGuid()], customerNote: "note", customerUploadedFileKey: "file-key");
+        Order.Create(
+            Guid.NewGuid(),
+            [Guid.NewGuid(), Guid.NewGuid()],
+            customerNote: "note",
+            customerUploadedFileKey: "file-key",
+            basicInsurance: BasicInsuranceType.SocialSecurity,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: null);
 
     private static Order CreateClaimedOrder(Guid doctorId)
     {
@@ -40,7 +47,14 @@ public class OrderTests
         var testId1 = Guid.NewGuid();
         var testId2 = Guid.NewGuid();
 
-        var order = Order.Create(Guid.NewGuid(), [testId1, testId2], customerNote: null, customerUploadedFileKey: null);
+        var order = Order.Create(
+            Guid.NewGuid(),
+            [testId1, testId2],
+            customerNote: null,
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.None,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: null);
 
         order.LabTestIds.Should().BeEquivalentTo([testId1, testId2]);
     }
@@ -50,7 +64,14 @@ public class OrderTests
     {
         var testId = Guid.NewGuid();
 
-        var order = Order.Create(Guid.NewGuid(), [testId, testId], customerNote: null, customerUploadedFileKey: null);
+        var order = Order.Create(
+            Guid.NewGuid(),
+            [testId, testId],
+            customerNote: null,
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.None,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: null);
 
         order.LabTestIds.Should().HaveCount(1);
     }
@@ -58,7 +79,14 @@ public class OrderTests
     [Fact]
     public void Create_WithNoTestIds_Throws()
     {
-        var act = () => Order.Create(Guid.NewGuid(), [], customerNote: null, customerUploadedFileKey: null);
+        var act = () => Order.Create(
+            Guid.NewGuid(),
+            [],
+            customerNote: null,
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.None,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: null);
 
         act.Should().Throw<DomainException>();
     }
@@ -66,10 +94,63 @@ public class OrderTests
     [Fact]
     public void Create_WithoutAttachedFile_Succeeds()
     {
-        var order = Order.Create(Guid.NewGuid(), [Guid.NewGuid()], customerNote: "note", customerUploadedFileKey: null);
+        var order = Order.Create(
+            Guid.NewGuid(),
+            [Guid.NewGuid()],
+            customerNote: "note",
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.None,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: null);
 
         order.CustomerUploadedFileKey.Should().BeNull();
         order.Status.Should().Be(OrderStatus.PendingDoctorApproval);
+    }
+
+    [Fact]
+    public void Create_ForSelf_HasNoThirdPartyInfo()
+    {
+        var order = CreateOrder();
+
+        order.IsForThirdParty.Should().BeFalse();
+        order.ThirdPartyNationalCode.Should().BeNull();
+        order.ThirdPartyPhoneNumber.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_ForThirdParty_SetsThirdPartyInfo()
+    {
+        var order = Order.Create(
+            Guid.NewGuid(),
+            [Guid.NewGuid()],
+            customerNote: null,
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.SocialSecurity,
+            supplementaryInsurance: SupplementaryInsuranceType.Dana,
+            thirdParty: new ThirdPartyBeneficiary("0499370899", "09121112233"));
+
+        order.IsForThirdParty.Should().BeTrue();
+        order.ThirdPartyNationalCode.Should().Be("0499370899");
+        order.ThirdPartyPhoneNumber.Should().Be("09121112233");
+        order.BasicInsurance.Should().Be(BasicInsuranceType.SocialSecurity);
+        order.SupplementaryInsurance.Should().Be(SupplementaryInsuranceType.Dana);
+    }
+
+    [Theory]
+    [InlineData("", "09121112233")]
+    [InlineData("0499370899", "")]
+    public void Create_ForThirdParty_MissingRequiredField_Throws(string nationalCode, string phoneNumber)
+    {
+        var act = () => Order.Create(
+            Guid.NewGuid(),
+            [Guid.NewGuid()],
+            customerNote: null,
+            customerUploadedFileKey: null,
+            basicInsurance: BasicInsuranceType.None,
+            supplementaryInsurance: SupplementaryInsuranceType.None,
+            thirdParty: new ThirdPartyBeneficiary(nationalCode, phoneNumber));
+
+        act.Should().Throw<DomainException>();
     }
 
     [Fact]

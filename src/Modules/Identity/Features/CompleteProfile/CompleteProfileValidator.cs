@@ -1,5 +1,5 @@
 using FluentValidation;
-using Prescription.Modules.Identity.Domain;
+using Prescription.SharedKernel.Validation;
 
 namespace Prescription.Modules.Identity.Features.CompleteProfile;
 

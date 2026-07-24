@@ -1,4 +1,5 @@
 using MediatR;
+using Prescription.Modules.Orders.Domain;
 
 namespace Prescription.Modules.Orders.Features.ListPendingOrders;
 
@@ -11,4 +12,7 @@ public sealed record PendingOrderDto(
     IReadOnlyCollection<Guid> LabTestIds,
     string? CustomerNote,
     bool HasAttachment,
+    BasicInsuranceType BasicInsurance,
+    SupplementaryInsuranceType SupplementaryInsurance,
+    bool IsForThirdParty,
     DateTimeOffset CreatedAtUtc);

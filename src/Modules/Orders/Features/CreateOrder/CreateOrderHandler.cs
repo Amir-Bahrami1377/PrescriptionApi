@@ -36,7 +36,18 @@ public sealed class CreateOrderHandler(
                 cancellationToken);
         }
 
-        var order = Order.Create(request.CustomerId, requestedTestIds, request.Note, objectKey);
+        var thirdParty = request.IsForThirdParty
+            ? new ThirdPartyBeneficiary(request.ThirdPartyNationalCode!, request.ThirdPartyPhoneNumber!)
+            : null;
+
+        var order = Order.Create(
+            request.CustomerId,
+            requestedTestIds,
+            request.Note,
+            objectKey,
+            request.BasicInsurance,
+            request.SupplementaryInsurance,
+            thirdParty);
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);
