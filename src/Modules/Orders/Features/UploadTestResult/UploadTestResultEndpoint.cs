@@ -6,6 +6,12 @@ using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.Orders.Features.UploadTestResult;
 
+/// <summary>Documents the multipart/form-data body for OpenAPI/Scalar — see CreateOrderFormDto for why this is needed alongside manual HttpRequest parsing.</summary>
+public sealed class UploadTestResultFormDto
+{
+    public required IFormFile File { get; init; }
+}
+
 public sealed class UploadTestResultEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
@@ -30,6 +36,7 @@ public sealed class UploadTestResultEndpoint : IEndpoint
                 return Results.NoContent();
             })
             .DisableAntiforgery()
+            .Accepts<UploadTestResultFormDto>("multipart/form-data")
             .WithName("UploadTestResult")
             .WithTags("Orders")
             .RequireAuthorization(policy => policy.RequireRole("Doctor"));

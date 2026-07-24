@@ -7,6 +7,25 @@ using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.Orders.Features.CreateOrder;
 
+/// <summary>
+/// Documents the multipart/form-data body for OpenAPI/Scalar only — the endpoint below still
+/// parses HttpRequest by hand (repeated "labTestIds" keys, optional file, custom per-field error
+/// messages don't fit plain [FromForm] binding), so without this the request body showed up
+/// undocumented and every field — especially the two insurance enums — had to be discovered by
+/// probing.
+/// </summary>
+public sealed class CreateOrderFormDto
+{
+    public required List<Guid> LabTestIds { get; init; }
+    public string? Note { get; init; }
+    public IFormFile? File { get; init; }
+    public BasicInsuranceType BasicInsurance { get; init; }
+    public SupplementaryInsuranceType SupplementaryInsurance { get; init; }
+    public bool IsForThirdParty { get; init; }
+    public string? ThirdPartyNationalCode { get; init; }
+    public string? ThirdPartyPhoneNumber { get; init; }
+}
+
 public sealed class CreateOrderEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
@@ -75,6 +94,7 @@ public sealed class CreateOrderEndpoint : IEndpoint
                 return Results.Created($"/api/orders/{response.OrderId}", response);
             })
             .DisableAntiforgery()
+            .Accepts<CreateOrderFormDto>("multipart/form-data")
             .WithName("CreateOrder")
             .WithTags("Orders")
             .RequireAuthorization(policy => policy.RequireRole("Customer"));

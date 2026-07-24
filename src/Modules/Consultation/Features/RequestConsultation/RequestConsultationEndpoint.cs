@@ -6,6 +6,13 @@ using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.Consultation.Features.RequestConsultation;
 
+/// <summary>Documents the multipart/form-data body for OpenAPI/Scalar — see CreateOrderFormDto for why this is needed alongside manual HttpRequest parsing.</summary>
+public sealed class RequestConsultationFormDto
+{
+    public required IFormFile File { get; init; }
+    public string? Note { get; init; }
+}
+
 public sealed class RequestConsultationEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
@@ -37,6 +44,7 @@ public sealed class RequestConsultationEndpoint : IEndpoint
                 return Results.Created($"/api/consultations/{response.ConsultationId}", response);
             })
             .DisableAntiforgery()
+            .Accepts<RequestConsultationFormDto>("multipart/form-data")
             .WithName("RequestConsultation")
             .WithTags("Consultation")
             .RequireAuthorization(policy => policy.RequireRole("Customer"));
