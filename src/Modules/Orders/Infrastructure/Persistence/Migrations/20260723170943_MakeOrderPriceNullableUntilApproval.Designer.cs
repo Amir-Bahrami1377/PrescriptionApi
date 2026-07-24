@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Prescription.Modules.Orders.Infrastructure.Persistence;
 namespace Prescription.Modules.Orders.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(OrdersDbContext))]
-    partial class OrdersDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260723170943_MakeOrderPriceNullableUntilApproval")]
+    partial class MakeOrderPriceNullableUntilApproval
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -27,12 +30,6 @@ namespace Prescription.Modules.Orders.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTimeOffset?>("ClaimExpiresAtUtc")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ClaimedByDoctorId")
                         .HasColumnType("uuid");
 
                     b.Property<DateTimeOffset?>("CompletedAtUtc")
@@ -55,10 +52,8 @@ namespace Prescription.Modules.Orders.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("DoctorId")
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<Guid[]>("LabTestIds")
-                        .IsRequired()
-                        .HasColumnType("uuid[]")
-                        .HasColumnName("lab_test_ids");
+                    b.Property<Guid>("LabTestId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("PaymentAuthority")
                         .HasMaxLength(100)

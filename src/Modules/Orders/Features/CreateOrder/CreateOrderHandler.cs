@@ -25,7 +25,7 @@ public sealed class CreateOrderHandler(
             request.ContentType,
             cancellationToken);
 
-        var order = Order.Create(request.CustomerId, test.Id, test.PriceInRials, request.Note, objectKey);
+        var order = Order.Create(request.CustomerId, test.Id, request.Note, objectKey);
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);

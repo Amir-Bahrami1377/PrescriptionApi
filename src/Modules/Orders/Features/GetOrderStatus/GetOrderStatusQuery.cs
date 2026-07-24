@@ -7,7 +7,7 @@ public sealed record GetOrderStatusQuery(Guid OrderId, Guid RequestingUserId, st
 public sealed record OrderStatusDto(
     Guid Id,
     Guid LabTestId,
-    long PriceInRials,
+    long? PriceInRials,
     string Status,
     string? RejectionReason,
     string? PrescriptionReferenceNumber,

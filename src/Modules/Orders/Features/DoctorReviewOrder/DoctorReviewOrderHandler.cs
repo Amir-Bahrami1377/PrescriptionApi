@@ -2,11 +2,13 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
+using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Exceptions;
 
 namespace Prescription.Modules.Orders.Features.DoctorReviewOrder;
 
-public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext) : IRequestHandler<DoctorReviewOrderCommand>
+public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext, IIdentityLookup identityLookup)
+    : IRequestHandler<DoctorReviewOrderCommand>
 {
     public async Task Handle(DoctorReviewOrderCommand request, CancellationToken cancellationToken)
     {
@@ -15,7 +17,13 @@ public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext) : IReque
 
         if (request.Approve)
         {
-            order.Approve(request.DoctorId);
+            var doctorFee = await identityLookup.GetDoctorFeeAsync(request.DoctorId, cancellationToken);
+            if (doctorFee?.FeeInRials is not { } feeInRials)
+            {
+                throw new DomainException("پزشک هنوز هزینه ویزیت خود را در پنل مدیریتی تعیین نکرده است.");
+            }
+
+            order.Approve(request.DoctorId, feeInRials);
         }
         else
         {

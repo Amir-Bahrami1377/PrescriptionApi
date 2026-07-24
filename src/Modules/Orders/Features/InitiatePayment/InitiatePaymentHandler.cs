@@ -20,7 +20,7 @@ public sealed class InitiatePaymentHandler(OrdersDbContext dbContext, IPaymentGa
             throw new UnauthorizedDomainException("این سفارش متعلق به شما نیست.");
         }
 
-        var paymentRequest = new PaymentRequest(order.PriceInRials, request.CallbackUrl, "پرداخت هزینه آزمایش", string.Empty);
+        var paymentRequest = new PaymentRequest(order.RequirePrice(), request.CallbackUrl, "پرداخت هزینه ویزیت", string.Empty);
         var result = await paymentGateway.RequestPaymentAsync(paymentRequest, cancellationToken);
 
         if (!result.Success || result.Authority is null || result.PaymentRedirectUrl is null)

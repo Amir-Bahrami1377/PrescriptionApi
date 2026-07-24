@@ -6,8 +6,10 @@ namespace Prescription.Modules.Orders.Tests;
 
 public class OrderTests
 {
+    private const long DoctorFee = 500_000;
+
     private static Order CreateOrder() =>
-        Order.Create(Guid.NewGuid(), Guid.NewGuid(), priceInRials: 500_000, customerNote: "note", customerUploadedFileKey: "file-key");
+        Order.Create(Guid.NewGuid(), Guid.NewGuid(), customerNote: "note", customerUploadedFileKey: "file-key");
 
     [Fact]
     public void Create_NewOrder_StartsInPendingDoctorApproval()
@@ -18,24 +20,44 @@ public class OrderTests
     }
 
     [Fact]
-    public void Approve_FromPendingDoctorApproval_TransitionsToAwaitingPayment_AndSetsDoctor()
+    public void Create_NewOrder_HasNoPriceYet()
+    {
+        var order = CreateOrder();
+
+        order.PriceInRials.Should().BeNull();
+    }
+
+    [Fact]
+    public void RequirePrice_BeforeApproval_Throws()
+    {
+        var order = CreateOrder();
+
+        var act = order.RequirePrice;
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Approve_FromPendingDoctorApproval_TransitionsToAwaitingPayment_AndSetsDoctorAndPrice()
     {
         var order = CreateOrder();
         var doctorId = Guid.NewGuid();
 
-        order.Approve(doctorId);
+        order.Approve(doctorId, DoctorFee);
 
         order.Status.Should().Be(OrderStatus.AwaitingPayment);
         order.DoctorId.Should().Be(doctorId);
+        order.PriceInRials.Should().Be(DoctorFee);
+        order.RequirePrice().Should().Be(DoctorFee);
     }
 
     [Fact]
     public void Approve_WhenAlreadyApproved_Throws()
     {
         var order = CreateOrder();
-        order.Approve(Guid.NewGuid());
+        order.Approve(Guid.NewGuid(), DoctorFee);
 
-        var act = () => order.Approve(Guid.NewGuid());
+        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
 
         act.Should().Throw<ConflictException>();
     }
@@ -67,7 +89,7 @@ public class OrderTests
     public void AttachPrescriptionReference_AfterApproval_Succeeds()
     {
         var order = CreateOrder();
-        order.Approve(Guid.NewGuid());
+        order.Approve(Guid.NewGuid(), DoctorFee);
 
         order.AttachPrescriptionReference("REF-123");
 
@@ -88,7 +110,7 @@ public class OrderTests
     public void ConfirmPayment_FromAwaitingPayment_TransitionsToInProgress()
     {
         var order = CreateOrder();
-        order.Approve(Guid.NewGuid());
+        order.Approve(Guid.NewGuid(), DoctorFee);
         order.RecordPaymentInitiated("authority-1");
 
         order.ConfirmPayment("ref-1");
@@ -111,7 +133,7 @@ public class OrderTests
     public void Complete_WithoutUploadedResult_Throws()
     {
         var order = CreateOrder();
-        order.Approve(Guid.NewGuid());
+        order.Approve(Guid.NewGuid(), DoctorFee);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
 
@@ -124,7 +146,7 @@ public class OrderTests
     public void Complete_AfterResultUploaded_TransitionsToCompleted_AndSetsCompletedAtUtc()
     {
         var order = CreateOrder();
-        order.Approve(Guid.NewGuid());
+        order.Approve(Guid.NewGuid(), DoctorFee);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
         order.UploadResult("result-key");

@@ -9,7 +9,10 @@ public sealed class Order : AuditableEntity
 
     public Guid CustomerId { get; private set; }
     public Guid LabTestId { get; private set; }
-    public long PriceInRials { get; private set; }
+
+    /// <summary>Null until a doctor approves the order — the price is the approving doctor's fixed fee, not tied to the selected test.</summary>
+    public long? PriceInRials { get; private set; }
+
     public string? CustomerNote { get; private set; }
     public string? CustomerUploadedFileKey { get; private set; }
 
@@ -25,13 +28,12 @@ public sealed class Order : AuditableEntity
     public string? ResultFileKey { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
-    public static Order Create(Guid customerId, Guid labTestId, long priceInRials, string? customerNote, string? customerUploadedFileKey)
+    public static Order Create(Guid customerId, Guid labTestId, string? customerNote, string? customerUploadedFileKey)
     {
         var order = new Order
         {
             CustomerId = customerId,
             LabTestId = labTestId,
-            PriceInRials = priceInRials,
             CustomerNote = customerNote,
             CustomerUploadedFileKey = customerUploadedFileKey,
             Status = OrderStatus.Draft,
@@ -50,10 +52,11 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
-    public void Approve(Guid doctorId)
+    public void Approve(Guid doctorId, long feeInRials)
     {
         OrderStateMachine.EnsureCanTransition(Status, OrderStatus.AwaitingPayment);
         DoctorId = doctorId;
+        PriceInRials = feeInRials;
         Status = OrderStatus.AwaitingPayment;
         Touch();
     }
@@ -120,6 +123,10 @@ public sealed class Order : AuditableEntity
         CompletedAtUtc = DateTimeOffset.UtcNow;
         Touch();
     }
+
+    /// <summary>Safe accessor for callers that only run after Approve (AwaitingPayment onward), where PriceInRials is guaranteed set.</summary>
+    public long RequirePrice() =>
+        PriceInRials ?? throw new ConflictException("قیمت سفارش هنوز مشخص نشده است.");
 
     private void Touch() => UpdatedAtUtc = DateTimeOffset.UtcNow;
 }

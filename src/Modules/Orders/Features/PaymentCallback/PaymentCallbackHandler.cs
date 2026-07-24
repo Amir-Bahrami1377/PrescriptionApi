@@ -32,7 +32,7 @@ public sealed class PaymentCallbackHandler(OrdersDbContext dbContext, IPaymentGa
         }
 
         // Amount + Authority are re-verified server-side against ZarinPal before the order ever moves to InProgress.
-        var verification = new PaymentVerification(request.Authority, order.PriceInRials);
+        var verification = new PaymentVerification(request.Authority, order.RequirePrice());
         var result = await paymentGateway.VerifyPaymentAsync(verification, cancellationToken);
 
         if (!result.Success || result.ReferenceId is null)
