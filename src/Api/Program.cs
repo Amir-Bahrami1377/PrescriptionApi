@@ -136,11 +136,18 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     using var migrationScope = app.Services.CreateScope();
-    await migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
+    var identityDbContext = migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    await identityDbContext.Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<ConsultationDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<TicketingDbContext>().Database.MigrateAsync();
+
+    var adminPhoneNumber = app.Configuration["Seed:AdminPhoneNumber"];
+    if (!string.IsNullOrWhiteSpace(adminPhoneNumber))
+    {
+        await IdentitySeeder.SeedAdminAsync(identityDbContext, adminPhoneNumber);
+    }
 }
 
 app.UseExceptionHandler(_ => { });
