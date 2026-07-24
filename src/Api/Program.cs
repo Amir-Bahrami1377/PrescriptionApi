@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using System.Text.Json.Serialization;
 using FluentValidation;
 using Hangfire;
 using Hangfire.PostgreSql;
@@ -51,6 +52,11 @@ var moduleAssemblies = new[]
 };
 
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+
+// Enums travel over the wire as their names (e.g. "Doctor", "Male"), not raw ints — both for
+// request bodies and for any DTO that serializes an enum property directly.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
