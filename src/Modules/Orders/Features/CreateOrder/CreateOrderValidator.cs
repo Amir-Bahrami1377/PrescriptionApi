@@ -31,7 +31,6 @@ public sealed class CreateOrderValidator : AbstractValidator<CreateOrderCommand>
             .WithMessage("فرمت فایل باید JPEG، PNG یا PDF باشد.");
 
         RuleFor(x => x.BasicInsurance).IsInEnum();
-        RuleFor(x => x.SupplementaryInsurance).IsInEnum();
 
         When(x => x.IsForThirdParty, () =>
         {

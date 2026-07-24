@@ -11,7 +11,7 @@ namespace Prescription.Modules.Orders.Features.CreateOrder;
 /// Documents the multipart/form-data body for OpenAPI/Scalar only — the endpoint below still
 /// parses HttpRequest by hand (repeated "labTestIds" keys, optional file, custom per-field error
 /// messages don't fit plain [FromForm] binding), so without this the request body showed up
-/// undocumented and every field — especially the two insurance enums — had to be discovered by
+/// undocumented and every field — especially the insurance enum — had to be discovered by
 /// probing.
 /// </summary>
 public sealed class CreateOrderFormDto
@@ -20,7 +20,6 @@ public sealed class CreateOrderFormDto
     public string? Note { get; init; }
     public IFormFile? File { get; init; }
     public BasicInsuranceType BasicInsurance { get; init; }
-    public SupplementaryInsuranceType SupplementaryInsurance { get; init; }
     public bool IsForThirdParty { get; init; }
     public string? ThirdPartyNationalCode { get; init; }
     public string? ThirdPartyPhoneNumber { get; init; }
@@ -73,9 +72,6 @@ public sealed class CreateOrderEndpoint : IEndpoint
                 var basicInsurance = Enum.TryParse<BasicInsuranceType>(form["basicInsurance"], ignoreCase: true, out var basic)
                     ? basic
                     : BasicInsuranceType.None;
-                var supplementaryInsurance = Enum.TryParse<SupplementaryInsuranceType>(form["supplementaryInsurance"], ignoreCase: true, out var supplementary)
-                    ? supplementary
-                    : SupplementaryInsuranceType.None;
 
                 var isForThirdParty = bool.TryParse(form["isForThirdParty"], out var forThirdParty) && forThirdParty;
                 var thirdPartyNationalCode = form["thirdPartyNationalCode"].ToString() is { Length: > 0 } nationalCode ? nationalCode : null;
@@ -90,7 +86,6 @@ public sealed class CreateOrderEndpoint : IEndpoint
                     file?.FileName,
                     file?.ContentType,
                     basicInsurance,
-                    supplementaryInsurance,
                     isForThirdParty,
                     thirdPartyNationalCode,
                     thirdPartyPhoneNumber,

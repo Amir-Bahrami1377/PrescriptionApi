@@ -21,7 +21,6 @@ public sealed class Order : AuditableEntity
     public string? CustomerUploadedFileKey { get; private set; }
 
     public BasicInsuranceType BasicInsurance { get; private set; }
-    public SupplementaryInsuranceType SupplementaryInsurance { get; private set; }
 
     /// <summary>When true, the order was placed on someone else's behalf — that person is not required to be a registered user, this is order metadata only.</summary>
     public bool IsForThirdParty { get; private set; }
@@ -57,7 +56,6 @@ public sealed class Order : AuditableEntity
         string? customerNote,
         string? customerUploadedFileKey,
         BasicInsuranceType basicInsurance,
-        SupplementaryInsuranceType supplementaryInsurance,
         ThirdPartyBeneficiary? thirdParty,
         bool requestsConsultation)
     {
@@ -79,7 +77,6 @@ public sealed class Order : AuditableEntity
             CustomerNote = customerNote,
             CustomerUploadedFileKey = customerUploadedFileKey,
             BasicInsurance = basicInsurance,
-            SupplementaryInsurance = supplementaryInsurance,
             IsForThirdParty = thirdParty is not null,
             ThirdPartyNationalCode = thirdParty?.NationalCode,
             ThirdPartyPhoneNumber = thirdParty?.PhoneNumber,

@@ -13,7 +13,6 @@ public sealed record PendingOrderDto(
     string? CustomerNote,
     bool HasAttachment,
     BasicInsuranceType BasicInsurance,
-    SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
     bool RequestsConsultation,
     DateTimeOffset CreatedAtUtc);

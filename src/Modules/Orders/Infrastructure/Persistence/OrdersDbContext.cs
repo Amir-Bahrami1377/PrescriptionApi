@@ -29,7 +29,6 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options, I
             builder.Property(o => o.ConsultationOpinion).HasMaxLength(4000);
 
             builder.Property(o => o.BasicInsurance).HasConversion<string>().HasMaxLength(30);
-            builder.Property(o => o.SupplementaryInsurance).HasConversion<string>().HasMaxLength(30);
             builder.Property(o => o.ThirdPartyPhoneNumber).HasMaxLength(20);
 
             // Same column-level encryption as the customer's own national code in Identity.

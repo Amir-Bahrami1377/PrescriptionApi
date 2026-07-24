@@ -15,7 +15,6 @@ public sealed record OrderStatusDto(
     string? PaymentReferenceId,
     bool HasResult,
     BasicInsuranceType BasicInsurance,
-    SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
     string? ThirdPartyNationalCode,
     string? ThirdPartyPhoneNumber,

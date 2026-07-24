@@ -13,7 +13,6 @@ public sealed record MyPendingReviewDto(
     string? CustomerNote,
     bool HasAttachment,
     BasicInsuranceType BasicInsurance,
-    SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
     bool RequestsConsultation,
     DateTimeOffset ClaimExpiresAtUtc,

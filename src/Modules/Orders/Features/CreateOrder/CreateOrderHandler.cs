@@ -46,7 +46,6 @@ public sealed class CreateOrderHandler(
             request.Note,
             objectKey,
             request.BasicInsurance,
-            request.SupplementaryInsurance,
             thirdParty,
             request.RequestsConsultation);
 

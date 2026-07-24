@@ -24,7 +24,6 @@ public sealed class ListPendingOrdersHandler(OrdersDbContext dbContext)
                 o.CustomerNote,
                 o.CustomerUploadedFileKey != null,
                 o.BasicInsurance,
-                o.SupplementaryInsurance,
                 o.IsForThirdParty,
                 o.RequestsConsultation,
                 o.CreatedAtUtc))

@@ -31,7 +31,6 @@ public sealed class GetOrderStatusHandler(OrdersDbContext dbContext) : IRequestH
             order.PaymentReferenceId,
             order.ResultFileKey is not null,
             order.BasicInsurance,
-            order.SupplementaryInsurance,
             order.IsForThirdParty,
             order.ThirdPartyNationalCode,
             order.ThirdPartyPhoneNumber,

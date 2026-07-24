@@ -11,7 +11,6 @@ public sealed record CreateOrderCommand(
     string? FileName,
     string? ContentType,
     BasicInsuranceType BasicInsurance,
-    SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
     string? ThirdPartyNationalCode,
     string? ThirdPartyPhoneNumber,

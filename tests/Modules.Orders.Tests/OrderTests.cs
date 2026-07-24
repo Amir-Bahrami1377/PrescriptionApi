@@ -16,7 +16,6 @@ public class OrderTests
             customerNote: "note",
             customerUploadedFileKey: "file-key",
             basicInsurance: BasicInsuranceType.SocialSecurity,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: null,
             requestsConsultation: requestsConsultation);
 
@@ -62,7 +61,6 @@ public class OrderTests
             customerNote: null,
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: null,
             requestsConsultation: false);
 
@@ -80,7 +78,6 @@ public class OrderTests
             customerNote: null,
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: null,
             requestsConsultation: false);
 
@@ -96,7 +93,6 @@ public class OrderTests
             customerNote: null,
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: null,
             requestsConsultation: false);
 
@@ -112,7 +108,6 @@ public class OrderTests
             customerNote: "note",
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: null,
             requestsConsultation: false);
 
@@ -139,7 +134,6 @@ public class OrderTests
             customerNote: null,
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.SocialSecurity,
-            supplementaryInsurance: SupplementaryInsuranceType.Dana,
             thirdParty: new ThirdPartyBeneficiary("0499370899", "09121112233"),
             requestsConsultation: false);
 
@@ -147,7 +141,6 @@ public class OrderTests
         order.ThirdPartyNationalCode.Should().Be("0499370899");
         order.ThirdPartyPhoneNumber.Should().Be("09121112233");
         order.BasicInsurance.Should().Be(BasicInsuranceType.SocialSecurity);
-        order.SupplementaryInsurance.Should().Be(SupplementaryInsuranceType.Dana);
     }
 
     [Theory]
@@ -161,7 +154,6 @@ public class OrderTests
             customerNote: null,
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
-            supplementaryInsurance: SupplementaryInsuranceType.None,
             thirdParty: new ThirdPartyBeneficiary(nationalCode, phoneNumber),
             requestsConsultation: false);
 
