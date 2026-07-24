@@ -17,7 +17,7 @@ public sealed class ListTestsHandler(CatalogDbContext dbContext) : IRequestHandl
 
         return await query
             .OrderBy(t => t.Name)
-            .Select(t => new LabTestDto(t.Id, t.Name, t.Description, t.PriceInRials))
+            .Select(t => new LabTestDto(t.Id, t.Name, t.Description))
             .ToListAsync(cancellationToken);
     }
 }

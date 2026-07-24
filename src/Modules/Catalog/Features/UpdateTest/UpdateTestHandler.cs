@@ -13,7 +13,7 @@ public sealed class UpdateTestHandler(CatalogDbContext dbContext) : IRequestHand
         var test = await dbContext.LabTests.FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(LabTest), request.Id);
 
-        test.Update(request.Name, request.Description, request.PriceInRials, request.IsActive);
+        test.Update(request.Name, request.Description, request.IsActive);
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

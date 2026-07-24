@@ -11,7 +11,7 @@ internal sealed class CatalogLookup(CatalogDbContext dbContext) : ICatalogLookup
         return await dbContext.LabTests
             .AsNoTracking()
             .Where(t => t.Id == labTestId && t.IsActive)
-            .Select(t => new LabTestSnapshot(t.Id, t.Name, t.PriceInRials))
+            .Select(t => new LabTestSnapshot(t.Id, t.Name))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

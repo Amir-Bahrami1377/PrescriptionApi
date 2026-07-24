@@ -8,7 +8,7 @@ public sealed class CreateTestHandler(CatalogDbContext dbContext) : IRequestHand
 {
     public async Task<CreateTestResponse> Handle(CreateTestCommand request, CancellationToken cancellationToken)
     {
-        var test = LabTest.Create(request.Name, request.Description, request.PriceInRials);
+        var test = LabTest.Create(request.Name, request.Description);
 
         dbContext.LabTests.Add(test);
         await dbContext.SaveChangesAsync(cancellationToken);

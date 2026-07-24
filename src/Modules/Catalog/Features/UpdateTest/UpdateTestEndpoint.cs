@@ -6,7 +6,7 @@ using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.Catalog.Features.UpdateTest;
 
-public sealed record UpdateTestRequest(string Name, string? Description, long PriceInRials, bool IsActive);
+public sealed record UpdateTestRequest(string Name, string? Description, bool IsActive);
 
 public sealed class UpdateTestEndpoint : IEndpoint
 {
@@ -14,7 +14,7 @@ public sealed class UpdateTestEndpoint : IEndpoint
     {
         app.MapPut("/api/catalog/tests/{id:guid}", async (Guid id, UpdateTestRequest body, ISender sender, CancellationToken cancellationToken) =>
             {
-                var command = new UpdateTestCommand(id, body.Name, body.Description, body.PriceInRials, body.IsActive);
+                var command = new UpdateTestCommand(id, body.Name, body.Description, body.IsActive);
                 await sender.Send(command, cancellationToken);
                 return Results.NoContent();
             })

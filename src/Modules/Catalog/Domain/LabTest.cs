@@ -8,26 +8,23 @@ public sealed class LabTest : AuditableEntity
 
     public string Name { get; private set; } = null!;
     public string? Description { get; private set; }
-    public long PriceInRials { get; private set; }
     public bool IsActive { get; private set; } = true;
 
-    public static LabTest Create(string name, string? description, long priceInRials)
+    public static LabTest Create(string name, string? description)
     {
         return new LabTest
         {
             Name = name,
             Description = description,
-            PriceInRials = priceInRials,
             IsActive = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
     }
 
-    public void Update(string name, string? description, long priceInRials, bool isActive)
+    public void Update(string name, string? description, bool isActive)
     {
         Name = name;
         Description = description;
-        PriceInRials = priceInRials;
         IsActive = isActive;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
