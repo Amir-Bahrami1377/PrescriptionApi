@@ -13,8 +13,16 @@ public sealed class ListOrdersAwaitingConsultationOpinionHandler(OrdersDbContext
         return await dbContext.Orders
             .AsNoTracking()
             .Where(o => o.Status == OrderStatus.AwaitingConsultationOpinion)
-            .OrderBy(o => o.CreatedAtUtc)
-            .Select(o => new AwaitingConsultationOpinionOrderDto(o.Id, o.CustomerId, o.LabTestIds, o.DoctorId, o.CreatedAtUtc))
+            .OrderBy(o => o.UpdatedAtUtc)
+            .Select(o => new AwaitingConsultationOpinionOrderDto(
+                o.Id,
+                o.CustomerId,
+                o.LabTestIds,
+                o.CustomerNote,
+                o.BasicInsurance,
+                o.DoctorId,
+                o.CreatedAtUtc,
+                o.UpdatedAtUtc!.Value))
             .ToListAsync(cancellationToken);
     }
 }
