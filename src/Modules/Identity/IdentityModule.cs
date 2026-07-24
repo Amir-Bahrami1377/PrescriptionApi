@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Polly;
 using Polly.Extensions.Http;
+using Prescription.Modules.Identity.Infrastructure;
 using Prescription.Modules.Identity.Infrastructure.Jwt;
 using Prescription.Modules.Identity.Infrastructure.Otp;
 using Prescription.Modules.Identity.Infrastructure.Persistence;
@@ -16,6 +17,7 @@ public static class IdentityModule
     public static IServiceCollection AddIdentityModule(this IServiceCollection services, IConfiguration configuration, string connectionString)
     {
         services.AddDbContext<IdentityDbContext>(options => options.UseNpgsql(connectionString));
+        services.AddScoped<IIdentityLookup, IdentityLookup>();
 
         services.Configure<JwtOptions>(configuration.GetSection("Jwt"));
         services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();

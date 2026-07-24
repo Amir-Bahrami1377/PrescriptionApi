@@ -1,4 +1,5 @@
 using Prescription.SharedKernel.Entities;
+using Prescription.SharedKernel.Exceptions;
 
 namespace Prescription.Modules.Identity.Domain;
 
@@ -13,6 +14,9 @@ public sealed class User : AuditableEntity
     public int? Age { get; private set; }
     public Gender? Gender { get; private set; }
     public bool IsProfileCompleted { get; private set; }
+
+    /// <summary>Fixed fee this doctor charges for reviewing/prescribing an order, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
+    public long? DoctorFeeInRials { get; private set; }
 
     public static User RegisterFromPhoneNumber(string phoneNumber, UserRole role = UserRole.Customer)
     {
@@ -32,6 +36,23 @@ public sealed class User : AuditableEntity
         Age = age;
         Gender = gender;
         IsProfileCompleted = true;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void ChangeRole(UserRole role)
+    {
+        Role = role;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void SetDoctorFee(long feeInRials)
+    {
+        if (Role != UserRole.Doctor)
+        {
+            throw new ConflictException("فقط پزشک می‌تواند هزینه ویزیت خود را تعیین کند.");
+        }
+
+        DoctorFeeInRials = feeInRials;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 }
