@@ -7,7 +7,6 @@ COPY src/SharedKernel/Prescription.SharedKernel.csproj src/SharedKernel/
 COPY src/Modules/Identity/Prescription.Modules.Identity.csproj src/Modules/Identity/
 COPY src/Modules/Catalog/Prescription.Modules.Catalog.csproj src/Modules/Catalog/
 COPY src/Modules/Orders/Prescription.Modules.Orders.csproj src/Modules/Orders/
-COPY src/Modules/Consultation/Prescription.Modules.Consultation.csproj src/Modules/Consultation/
 COPY src/Modules/Ticketing/Prescription.Modules.Ticketing.csproj src/Modules/Ticketing/
 COPY src/Modules/Notifications/Prescription.Modules.Notifications.csproj src/Modules/Notifications/
 COPY src/Modules/Payments/Prescription.Modules.Payments.csproj src/Modules/Payments/

@@ -27,7 +27,6 @@
     <ProjectReference Include="..\Modules\Identity\Prescription.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Catalog\Prescription.Modules.Catalog.csproj" />
     <ProjectReference Include="..\Modules\Orders\Prescription.Modules.Orders.csproj" />
-    <ProjectReference Include="..\Modules\Consultation\Prescription.Modules.Consultation.csproj" />
     <ProjectReference Include="..\Modules\Ticketing\Prescription.Modules.Ticketing.csproj" />
     <ProjectReference Include="..\Modules\Notifications\Prescription.Modules.Notifications.csproj" />
     <ProjectReference Include="..\Modules\Payments\Prescription.Modules.Payments.csproj" />

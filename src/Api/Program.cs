@@ -14,8 +14,6 @@ using Prescription.Api.OpenApi;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Catalog;
 using Prescription.Modules.Catalog.Infrastructure.Persistence;
-using Prescription.Modules.Consultation;
-using Prescription.Modules.Consultation.Infrastructure.Persistence;
 using Prescription.Modules.FileStorage;
 using Prescription.Modules.Identity;
 using Prescription.Modules.Identity.Infrastructure.Persistence;
@@ -47,7 +45,6 @@ var moduleAssemblies = new[]
     typeof(Prescription.Modules.Identity.IdentityModule).Assembly,
     typeof(Prescription.Modules.Catalog.CatalogModule).Assembly,
     typeof(Prescription.Modules.Orders.OrdersModule).Assembly,
-    typeof(Prescription.Modules.Consultation.ConsultationModule).Assembly,
     typeof(Prescription.Modules.Ticketing.TicketingModule).Assembly,
 };
 
@@ -94,7 +91,6 @@ builder.Services.AddCatalogModule(postgresConnectionString);
 builder.Services.AddOrdersModule(postgresConnectionString);
 builder.Services.AddPaymentsModule(builder.Configuration);
 builder.Services.AddFileStorageModule(builder.Configuration);
-builder.Services.AddConsultationModule(postgresConnectionString);
 builder.Services.AddTicketingModule(postgresConnectionString);
 builder.Services.AddNotificationsModule(builder.Configuration);
 
@@ -140,7 +136,6 @@ if (app.Environment.IsDevelopment())
     await identityDbContext.Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
-    await migrationScope.ServiceProvider.GetRequiredService<ConsultationDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<TicketingDbContext>().Database.MigrateAsync();
 
     var adminPhoneNumber = app.Configuration["Seed:AdminPhoneNumber"];

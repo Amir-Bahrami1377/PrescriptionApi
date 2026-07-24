@@ -7,9 +7,6 @@
   <Folder Name="/src/Modules/Catalog/">
     <Project Path="src/Modules/Catalog/Prescription.Modules.Catalog.csproj" />
   </Folder>
-  <Folder Name="/src/Modules/Consultation/">
-    <Project Path="src/Modules/Consultation/Prescription.Modules.Consultation.csproj" />
-  </Folder>
   <Folder Name="/src/Modules/FileStorage/">
     <Project Path="src/Modules/FileStorage/Prescription.Modules.FileStorage.csproj" />
   </Folder>
