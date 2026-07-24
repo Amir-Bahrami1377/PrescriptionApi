@@ -134,7 +134,8 @@ if (app.Environment.IsDevelopment())
     using var migrationScope = app.Services.CreateScope();
     var identityDbContext = migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await identityDbContext.Database.MigrateAsync();
-    await migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
+    var catalogDbContext = migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>();
+    await catalogDbContext.Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<TicketingDbContext>().Database.MigrateAsync();
 
@@ -143,6 +144,8 @@ if (app.Environment.IsDevelopment())
     {
         await IdentitySeeder.SeedAdminAsync(identityDbContext, adminPhoneNumber);
     }
+
+    await CatalogSeeder.SeedLabTestsAsync(catalogDbContext);
 }
 
 app.UseExceptionHandler(_ => { });
