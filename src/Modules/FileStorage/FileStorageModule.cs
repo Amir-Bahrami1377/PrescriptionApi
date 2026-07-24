@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Minio;
 using Prescription.Modules.FileStorage.Infrastructure;
 using Prescription.SharedKernel.Abstractions;
 
@@ -13,13 +12,7 @@ public static class FileStorageModule
         var options = configuration.GetSection("MinIO").Get<MinioOptions>()
             ?? throw new InvalidOperationException("MinIO configuration section is missing.");
 
-        services.AddSingleton<IMinioClient>(_ =>
-            new MinioClient()
-                .WithEndpoint(options.Endpoint)
-                .WithCredentials(options.AccessKey, options.SecretKey)
-                .WithSSL(options.UseSsl)
-                .Build());
-
+        services.AddSingleton(options);
         services.AddSingleton<IFileStorageService, MinioFileStorageService>();
 
         return services;

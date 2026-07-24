@@ -62,6 +62,9 @@ services:
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=prescription_db;Username=postgres;Password=postgres"
       ConnectionStrings__Redis: "redis:6379"
       MinIO__Endpoint: "minio:9000"
+      # Presigned URLs are handed to browsers outside the compose network, so they must point at
+      # the published host port ("minio:9000" only resolves inside the Docker network).
+      MinIO__PublicEndpoint: "localhost:9000"
       MinIO__AccessKey: "minioadmin"
       MinIO__SecretKey: "minioadmin"
       MinIO__UseSsl: "false"

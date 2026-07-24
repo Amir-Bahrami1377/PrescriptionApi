@@ -4,8 +4,30 @@ using Prescription.SharedKernel.Abstractions;
 
 namespace Prescription.Modules.FileStorage.Infrastructure;
 
-public sealed class MinioFileStorageService(IMinioClient minioClient) : IFileStorageService
+/// <summary>Uses two MinIO clients: one pointed at the internal endpoint for server-side upload/download/delete
+/// calls, and one pointed at a publicly reachable endpoint so presigned URLs actually resolve for an external
+/// browser instead of embedding an internal-only Docker service name.</summary>
+public sealed class MinioFileStorageService : IFileStorageService
 {
+    private readonly IMinioClient _minioClient;
+    private readonly IMinioClient _publicMinioClient;
+
+    public MinioFileStorageService(MinioOptions options)
+    {
+        _minioClient = new MinioClient()
+            .WithEndpoint(options.Endpoint)
+            .WithCredentials(options.AccessKey, options.SecretKey)
+            .WithSSL(options.UseSsl)
+            .Build();
+
+        var publicEndpoint = string.IsNullOrWhiteSpace(options.PublicEndpoint) ? options.Endpoint : options.PublicEndpoint;
+        _publicMinioClient = new MinioClient()
+            .WithEndpoint(publicEndpoint)
+            .WithCredentials(options.AccessKey, options.SecretKey)
+            .WithSSL(options.UseSsl)
+            .Build();
+    }
+
     public async Task<string> UploadAsync(string bucket, string objectKey, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         await EnsureBucketExistsAsync(bucket, cancellationToken);
@@ -17,7 +39,7 @@ public sealed class MinioFileStorageService(IMinioClient minioClient) : IFileSto
             .WithObjectSize(content.Length)
             .WithContentType(contentType);
 
-        await minioClient.PutObjectAsync(putArgs, cancellationToken);
+        await _minioClient.PutObjectAsync(putArgs, cancellationToken);
 
         return objectKey;
     }
@@ -31,7 +53,7 @@ public sealed class MinioFileStorageService(IMinioClient minioClient) : IFileSto
             .WithObject(objectKey)
             .WithCallbackStream(stream => stream.CopyTo(memoryStream));
 
-        await minioClient.GetObjectAsync(getArgs, cancellationToken);
+        await _minioClient.GetObjectAsync(getArgs, cancellationToken);
 
         memoryStream.Position = 0;
         return memoryStream;
@@ -44,7 +66,7 @@ public sealed class MinioFileStorageService(IMinioClient minioClient) : IFileSto
             .WithObject(objectKey)
             .WithExpiry((int)expiry.TotalSeconds);
 
-        return await minioClient.PresignedGetObjectAsync(presignedArgs);
+        return await _publicMinioClient.PresignedGetObjectAsync(presignedArgs);
     }
 
     public async Task DeleteAsync(string bucket, string objectKey, CancellationToken cancellationToken = default)
@@ -53,17 +75,17 @@ public sealed class MinioFileStorageService(IMinioClient minioClient) : IFileSto
             .WithBucket(bucket)
             .WithObject(objectKey);
 
-        await minioClient.RemoveObjectAsync(removeArgs, cancellationToken);
+        await _minioClient.RemoveObjectAsync(removeArgs, cancellationToken);
     }
 
     private async Task EnsureBucketExistsAsync(string bucket, CancellationToken cancellationToken)
     {
         var existsArgs = new BucketExistsArgs().WithBucket(bucket);
-        var exists = await minioClient.BucketExistsAsync(existsArgs, cancellationToken);
+        var exists = await _minioClient.BucketExistsAsync(existsArgs, cancellationToken);
 
         if (!exists)
         {
-            await minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket), cancellationToken);
+            await _minioClient.MakeBucketAsync(new MakeBucketArgs().WithBucket(bucket), cancellationToken);
         }
     }
 }
