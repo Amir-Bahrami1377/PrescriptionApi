@@ -9,7 +9,7 @@ public class OrderTests
     private const long DoctorFee = 500_000;
 
     private static Order CreateOrder() =>
-        Order.Create(Guid.NewGuid(), Guid.NewGuid(), customerNote: "note", customerUploadedFileKey: "file-key");
+        Order.Create(Guid.NewGuid(), [Guid.NewGuid(), Guid.NewGuid()], customerNote: "note", customerUploadedFileKey: "file-key");
 
     [Fact]
     public void Create_NewOrder_StartsInPendingDoctorApproval()
@@ -25,6 +25,44 @@ public class OrderTests
         var order = CreateOrder();
 
         order.PriceInRials.Should().BeNull();
+    }
+
+    [Fact]
+    public void Create_WithMultipleTests_KeepsAllOfThem()
+    {
+        var testId1 = Guid.NewGuid();
+        var testId2 = Guid.NewGuid();
+
+        var order = Order.Create(Guid.NewGuid(), [testId1, testId2], customerNote: null, customerUploadedFileKey: null);
+
+        order.LabTestIds.Should().BeEquivalentTo([testId1, testId2]);
+    }
+
+    [Fact]
+    public void Create_WithDuplicateTestIds_Deduplicates()
+    {
+        var testId = Guid.NewGuid();
+
+        var order = Order.Create(Guid.NewGuid(), [testId, testId], customerNote: null, customerUploadedFileKey: null);
+
+        order.LabTestIds.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Create_WithNoTestIds_Throws()
+    {
+        var act = () => Order.Create(Guid.NewGuid(), [], customerNote: null, customerUploadedFileKey: null);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void Create_WithoutAttachedFile_Succeeds()
+    {
+        var order = Order.Create(Guid.NewGuid(), [Guid.NewGuid()], customerNote: "note", customerUploadedFileKey: null);
+
+        order.CustomerUploadedFileKey.Should().BeNull();
+        order.Status.Should().Be(OrderStatus.PendingDoctorApproval);
     }
 
     [Fact]

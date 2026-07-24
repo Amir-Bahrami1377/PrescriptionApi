@@ -23,7 +23,7 @@ public sealed class GetOrderStatusHandler(OrdersDbContext dbContext) : IRequestH
 
         return new OrderStatusDto(
             order.Id,
-            order.LabTestId,
+            order.LabTestIds,
             order.PriceInRials,
             order.Status.ToString(),
             order.RejectionReason,

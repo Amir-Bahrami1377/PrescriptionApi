@@ -22,21 +22,31 @@ public sealed class CreateOrderEndpoint : IEndpoint
                 }
 
                 var form = await httpRequest.ReadFormAsync(cancellationToken);
-                var file = form.Files.GetFile("file");
-                if (file is null || file.Length == 0)
+
+                // Client sends one or more "labTestIds" fields (repeated multipart key) for multi-select.
+                var labTestIds = new List<Guid>();
+                foreach (var value in form["labTestIds"])
                 {
-                    return Results.BadRequest("بارگذاری فایل الزامی است.");
+                    if (string.IsNullOrWhiteSpace(value) || !Guid.TryParse(value, out var id))
+                    {
+                        return Results.BadRequest("شناسه آزمایش نامعتبر است.");
+                    }
+
+                    labTestIds.Add(id);
                 }
 
-                if (!Guid.TryParse(form["labTestId"], out var labTestId))
+                if (labTestIds.Count == 0)
                 {
-                    return Results.BadRequest("شناسه آزمایش نامعتبر است.");
+                    return Results.BadRequest("انتخاب حداقل یک آزمایش الزامی است.");
                 }
 
                 var note = form["note"].ToString();
 
-                await using var stream = file.OpenReadStream();
-                var command = new CreateOrderCommand(customerId, labTestId, note, stream, file.FileName, file.ContentType);
+                // File attachment is optional.
+                var file = form.Files.GetFile("file");
+                await using var stream = file?.OpenReadStream();
+
+                var command = new CreateOrderCommand(customerId, labTestIds, note, stream, file?.FileName, file?.ContentType);
                 var response = await sender.Send(command, cancellationToken);
 
                 return Results.Created($"/api/orders/{response.OrderId}", response);

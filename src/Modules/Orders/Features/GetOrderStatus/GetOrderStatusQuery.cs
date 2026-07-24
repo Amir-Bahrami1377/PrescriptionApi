@@ -6,7 +6,7 @@ public sealed record GetOrderStatusQuery(Guid OrderId, Guid RequestingUserId, st
 
 public sealed record OrderStatusDto(
     Guid Id,
-    Guid LabTestId,
+    IReadOnlyCollection<Guid> LabTestIds,
     long? PriceInRials,
     string Status,
     string? RejectionReason,

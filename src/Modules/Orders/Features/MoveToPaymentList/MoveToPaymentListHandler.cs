@@ -14,7 +14,7 @@ public sealed class MoveToPaymentListHandler(OrdersDbContext dbContext)
             .AsNoTracking()
             .Where(o => o.CustomerId == request.CustomerId && o.Status == OrderStatus.AwaitingPayment)
             .OrderByDescending(o => o.CreatedAtUtc)
-            .Select(o => new PaymentListItemDto(o.Id, o.LabTestId, o.PriceInRials!.Value, o.CreatedAtUtc))
+            .Select(o => new PaymentListItemDto(o.Id, o.LabTestIds, o.PriceInRials!.Value, o.CreatedAtUtc))
             .ToListAsync(cancellationToken);
     }
 }

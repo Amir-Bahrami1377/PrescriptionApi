@@ -5,12 +5,14 @@ namespace Prescription.Modules.Orders.Domain;
 
 public sealed class Order : AuditableEntity
 {
+    private readonly List<Guid> _labTestIds = [];
+
     private Order() { }
 
     public Guid CustomerId { get; private set; }
-    public Guid LabTestId { get; private set; }
+    public IReadOnlyCollection<Guid> LabTestIds => _labTestIds.AsReadOnly();
 
-    /// <summary>Null until a doctor approves the order — the price is the approving doctor's fixed fee, not tied to the selected test.</summary>
+    /// <summary>Null until a doctor approves the order — the price is the approving doctor's fixed fee, not tied to the selected test(s).</summary>
     public long? PriceInRials { get; private set; }
 
     public string? CustomerNote { get; private set; }
@@ -28,18 +30,24 @@ public sealed class Order : AuditableEntity
     public string? ResultFileKey { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
-    public static Order Create(Guid customerId, Guid labTestId, string? customerNote, string? customerUploadedFileKey)
+    public static Order Create(Guid customerId, IEnumerable<Guid> labTestIds, string? customerNote, string? customerUploadedFileKey)
     {
+        var distinctTestIds = labTestIds.Distinct().ToList();
+        if (distinctTestIds.Count == 0)
+        {
+            throw new DomainException("انتخاب حداقل یک آزمایش الزامی است.");
+        }
+
         var order = new Order
         {
             CustomerId = customerId,
-            LabTestId = labTestId,
             CustomerNote = customerNote,
             CustomerUploadedFileKey = customerUploadedFileKey,
             Status = OrderStatus.Draft,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
 
+        order._labTestIds.AddRange(distinctTestIds);
         order.Submit();
 
         return order;

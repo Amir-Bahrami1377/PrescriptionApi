@@ -28,6 +28,13 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options) :
             builder.HasIndex(o => o.CustomerId);
             builder.HasIndex(o => o.Status);
 
+            // Postgres native array column (uuid[]) backed by the private _labTestIds field,
+            // since LabTestIds is exposed publicly as a read-only collection.
+            builder.PrimitiveCollection(o => o.LabTestIds)
+                .HasField("_labTestIds")
+                .UsePropertyAccessMode(PropertyAccessMode.Field)
+                .HasColumnName("lab_test_ids");
+
             builder.Property(o => o.RowVersion)
                 .HasColumnName("xmin")
                 .HasColumnType("xid")

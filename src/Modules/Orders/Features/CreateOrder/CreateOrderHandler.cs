@@ -14,18 +14,29 @@ public sealed class CreateOrderHandler(
 {
     public async Task<CreateOrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
-        var test = await catalogLookup.GetActiveTestAsync(request.LabTestId, cancellationToken)
-            ?? throw new NotFoundException("LabTest", request.LabTestId);
+        var requestedTestIds = request.LabTestIds.Distinct().ToList();
 
-        var objectKey = $"{Guid.NewGuid()}-{request.FileName}";
-        await fileStorageService.UploadAsync(
-            StorageBuckets.TestResults,
-            objectKey,
-            request.FileContent,
-            request.ContentType,
-            cancellationToken);
+        var tests = await catalogLookup.GetActiveTestsAsync(requestedTestIds, cancellationToken);
+        var foundIds = tests.Select(t => t.Id).ToHashSet();
+        var missingIds = requestedTestIds.Where(id => !foundIds.Contains(id)).ToList();
+        if (missingIds.Count > 0)
+        {
+            throw new NotFoundException("LabTest", string.Join(", ", missingIds));
+        }
 
-        var order = Order.Create(request.CustomerId, test.Id, request.Note, objectKey);
+        string? objectKey = null;
+        if (request.FileContent is not null)
+        {
+            objectKey = $"{Guid.NewGuid()}-{request.FileName}";
+            await fileStorageService.UploadAsync(
+                StorageBuckets.TestResults,
+                objectKey,
+                request.FileContent,
+                request.ContentType!,
+                cancellationToken);
+        }
+
+        var order = Order.Create(request.CustomerId, requestedTestIds, request.Note, objectKey);
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);
