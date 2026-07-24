@@ -11,6 +11,13 @@ public class OrderTests
     private static Order CreateOrder() =>
         Order.Create(Guid.NewGuid(), [Guid.NewGuid(), Guid.NewGuid()], customerNote: "note", customerUploadedFileKey: "file-key");
 
+    private static Order CreateClaimedOrder(Guid doctorId)
+    {
+        var order = CreateOrder();
+        order.ClaimForReview(doctorId);
+        return order;
+    }
+
     [Fact]
     public void Create_NewOrder_StartsInPendingDoctorApproval()
     {
@@ -76,10 +83,80 @@ public class OrderTests
     }
 
     [Fact]
-    public void Approve_FromPendingDoctorApproval_TransitionsToAwaitingPayment_AndSetsDoctorAndPrice()
+    public void ClaimForReview_FreshOrder_GrantsThirtyMinuteWindow()
     {
         var order = CreateOrder();
         var doctorId = Guid.NewGuid();
+        var before = DateTimeOffset.UtcNow;
+
+        order.ClaimForReview(doctorId);
+
+        order.ClaimedByDoctorId.Should().Be(doctorId);
+        order.ClaimExpiresAtUtc.Should().BeCloseTo(before.AddMinutes(30), TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void ClaimForReview_AlreadyClaimedBySomeoneElse_Throws()
+    {
+        var order = CreateOrder();
+        order.ClaimForReview(Guid.NewGuid());
+
+        var act = () => order.ClaimForReview(Guid.NewGuid());
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void ClaimForReview_ReclaimedBySameDoctor_RefreshesWindow()
+    {
+        var order = CreateOrder();
+        var doctorId = Guid.NewGuid();
+        order.ClaimForReview(doctorId);
+
+        var act = () => order.ClaimForReview(doctorId);
+
+        act.Should().NotThrow();
+        order.ClaimedByDoctorId.Should().Be(doctorId);
+    }
+
+    [Fact]
+    public void ClaimForReview_NotPendingDoctorApproval_Throws()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
+
+        var act = () => order.ClaimForReview(Guid.NewGuid());
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Approve_WithoutClaiming_Throws()
+    {
+        var order = CreateOrder();
+
+        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Approve_ClaimedBySomeoneElse_Throws()
+    {
+        var order = CreateOrder();
+        order.ClaimForReview(Guid.NewGuid());
+
+        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Approve_FromPendingDoctorApproval_TransitionsToAwaitingPayment_AndSetsDoctorAndPrice()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
 
         order.Approve(doctorId, DoctorFee);
 
@@ -92,10 +169,21 @@ public class OrderTests
     [Fact]
     public void Approve_WhenAlreadyApproved_Throws()
     {
-        var order = CreateOrder();
-        order.Approve(Guid.NewGuid(), DoctorFee);
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
 
-        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
+        var act = () => order.Approve(doctorId, DoctorFee);
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Reject_WithoutClaiming_Throws()
+    {
+        var order = CreateOrder();
+
+        var act = () => order.Reject(Guid.NewGuid(), "دلیل");
 
         act.Should().Throw<ConflictException>();
     }
@@ -103,8 +191,8 @@ public class OrderTests
     [Fact]
     public void Reject_FromPendingDoctorApproval_TransitionsToRejected_AndSetsReason()
     {
-        var order = CreateOrder();
         var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
 
         order.Reject(doctorId, "کیفیت تصویر کافی نیست.");
 
@@ -126,8 +214,9 @@ public class OrderTests
     [Fact]
     public void AttachPrescriptionReference_AfterApproval_Succeeds()
     {
-        var order = CreateOrder();
-        order.Approve(Guid.NewGuid(), DoctorFee);
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
 
         order.AttachPrescriptionReference("REF-123");
 
@@ -147,8 +236,9 @@ public class OrderTests
     [Fact]
     public void ConfirmPayment_FromAwaitingPayment_TransitionsToInProgress()
     {
-        var order = CreateOrder();
-        order.Approve(Guid.NewGuid(), DoctorFee);
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
         order.RecordPaymentInitiated("authority-1");
 
         order.ConfirmPayment("ref-1");
@@ -170,8 +260,9 @@ public class OrderTests
     [Fact]
     public void Complete_WithoutUploadedResult_Throws()
     {
-        var order = CreateOrder();
-        order.Approve(Guid.NewGuid(), DoctorFee);
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
 
@@ -183,8 +274,9 @@ public class OrderTests
     [Fact]
     public void Complete_AfterResultUploaded_TransitionsToCompleted_AndSetsCompletedAtUtc()
     {
-        var order = CreateOrder();
-        order.Approve(Guid.NewGuid(), DoctorFee);
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId);
+        order.Approve(doctorId, DoctorFee);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
         order.UploadResult("result-key");

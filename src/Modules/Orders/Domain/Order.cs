@@ -5,6 +5,8 @@ namespace Prescription.Modules.Orders.Domain;
 
 public sealed class Order : AuditableEntity
 {
+    private static readonly TimeSpan ClaimDuration = TimeSpan.FromMinutes(30);
+
     private readonly List<Guid> _labTestIds = [];
 
     private Order() { }
@@ -23,6 +25,12 @@ public sealed class Order : AuditableEntity
     public Guid? DoctorId { get; private set; }
     public string? RejectionReason { get; private set; }
     public string? PrescriptionReferenceNumber { get; private set; }
+
+    /// <summary>Exclusive 30-minute review window. Live-compared against UtcNow rather than
+    /// proactively cleared by a background job — once ClaimExpiresAtUtc passes, the order simply
+    /// falls back out of "claimed" queries and back into the shared pending pool on its own.</summary>
+    public Guid? ClaimedByDoctorId { get; private set; }
+    public DateTimeOffset? ClaimExpiresAtUtc { get; private set; }
 
     public string? PaymentAuthority { get; private set; }
     public string? PaymentReferenceId { get; private set; }
@@ -60,8 +68,36 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
+    /// <summary>
+    /// A doctor requests exclusive review rights. Fails if someone else already holds an
+    /// unexpired claim; otherwise (free, expired, or already held by the same doctor) grants a
+    /// fresh 30-minute window.
+    /// </summary>
+    public void ClaimForReview(Guid doctorId)
+    {
+        if (Status != OrderStatus.PendingDoctorApproval)
+        {
+            throw new ConflictException("این سفارش در وضعیت در انتظار بررسی نیست.");
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var isClaimedBySomeoneElse = ClaimedByDoctorId is { } claimant
+            && claimant != doctorId
+            && ClaimExpiresAtUtc > now;
+
+        if (isClaimedBySomeoneElse)
+        {
+            throw new ConflictException("این سفارش هم‌اکنون توسط پزشک دیگری در حال بررسی است.");
+        }
+
+        ClaimedByDoctorId = doctorId;
+        ClaimExpiresAtUtc = now.Add(ClaimDuration);
+        Touch();
+    }
+
     public void Approve(Guid doctorId, long feeInRials)
     {
+        EnsureActiveClaimBy(doctorId);
         OrderStateMachine.EnsureCanTransition(Status, OrderStatus.AwaitingPayment);
         DoctorId = doctorId;
         PriceInRials = feeInRials;
@@ -71,11 +107,21 @@ public sealed class Order : AuditableEntity
 
     public void Reject(Guid doctorId, string reason)
     {
+        EnsureActiveClaimBy(doctorId);
         OrderStateMachine.EnsureCanTransition(Status, OrderStatus.Rejected);
         DoctorId = doctorId;
         RejectionReason = reason;
         Status = OrderStatus.Rejected;
         Touch();
+    }
+
+    private void EnsureActiveClaimBy(Guid doctorId)
+    {
+        var hasActiveClaim = ClaimedByDoctorId == doctorId && ClaimExpiresAtUtc > DateTimeOffset.UtcNow;
+        if (!hasActiveClaim)
+        {
+            throw new ConflictException("پیش از تایید یا رد سفارش، ابتدا باید درخواست بررسی برای آن ثبت کنید.");
+        }
     }
 
     public void AttachPrescriptionReference(string prescriptionReferenceNumber)
