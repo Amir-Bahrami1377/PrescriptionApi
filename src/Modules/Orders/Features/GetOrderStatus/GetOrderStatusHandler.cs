@@ -35,6 +35,8 @@ public sealed class GetOrderStatusHandler(OrdersDbContext dbContext) : IRequestH
             order.IsForThirdParty,
             order.ThirdPartyNationalCode,
             order.ThirdPartyPhoneNumber,
+            order.RequestsConsultation,
+            order.ConsultationOpinion,
             order.CreatedAtUtc,
             order.CompletedAtUtc);
     }

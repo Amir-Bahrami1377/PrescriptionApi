@@ -26,6 +26,7 @@ public sealed class ListPendingOrdersHandler(OrdersDbContext dbContext)
                 o.BasicInsurance,
                 o.SupplementaryInsurance,
                 o.IsForThirdParty,
+                o.RequestsConsultation,
                 o.CreatedAtUtc))
             .ToListAsync(cancellationToken);
     }

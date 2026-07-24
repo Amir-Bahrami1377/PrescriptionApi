@@ -15,5 +15,6 @@ public sealed record MyPendingReviewDto(
     BasicInsuranceType BasicInsurance,
     SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
+    bool RequestsConsultation,
     DateTimeOffset ClaimExpiresAtUtc,
     DateTimeOffset CreatedAtUtc);

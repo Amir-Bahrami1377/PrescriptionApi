@@ -27,6 +27,7 @@ public sealed class ListMyPendingReviewsHandler(OrdersDbContext dbContext)
                 o.BasicInsurance,
                 o.SupplementaryInsurance,
                 o.IsForThirdParty,
+                o.RequestsConsultation,
                 o.ClaimExpiresAtUtc!.Value,
                 o.CreatedAtUtc))
             .ToListAsync(cancellationToken);

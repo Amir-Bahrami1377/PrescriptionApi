@@ -19,5 +19,7 @@ public sealed record OrderStatusDto(
     bool IsForThirdParty,
     string? ThirdPartyNationalCode,
     string? ThirdPartyPhoneNumber,
+    bool RequestsConsultation,
+    string? ConsultationOpinion,
     DateTimeOffset CreatedAtUtc,
     DateTimeOffset? CompletedAtUtc);

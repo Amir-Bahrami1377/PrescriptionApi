@@ -15,4 +15,5 @@ public sealed record PendingOrderDto(
     BasicInsuranceType BasicInsurance,
     SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
+    bool RequestsConsultation,
     DateTimeOffset CreatedAtUtc);
