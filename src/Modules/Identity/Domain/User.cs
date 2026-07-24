@@ -18,6 +18,9 @@ public sealed class User : AuditableEntity
     /// <summary>Fixed fee this doctor charges for reviewing/prescribing an order, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
     public long? DoctorFeeInRials { get; private set; }
 
+    /// <summary>Fixed fee this doctor charges for giving a consultation opinion on an uploaded test result, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
+    public long? ConsultationFeeInRials { get; private set; }
+
     public static User RegisterFromPhoneNumber(string phoneNumber, UserRole role = UserRole.Customer)
     {
         return new User
@@ -53,6 +56,17 @@ public sealed class User : AuditableEntity
         }
 
         DoctorFeeInRials = feeInRials;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void SetConsultationFee(long feeInRials)
+    {
+        if (Role != UserRole.Doctor)
+        {
+            throw new ConflictException("فقط پزشک می‌تواند هزینه مشاوره خود را تعیین کند.");
+        }
+
+        ConsultationFeeInRials = feeInRials;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 }

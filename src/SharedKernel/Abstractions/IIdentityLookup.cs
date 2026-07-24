@@ -10,5 +10,5 @@ public interface IIdentityLookup
     Task<DoctorFeeSnapshot?> GetDoctorFeeAsync(Guid doctorId, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Null FeeInRials means the doctor exists but hasn't configured their fee yet.</summary>
-public sealed record DoctorFeeSnapshot(Guid DoctorId, long? FeeInRials);
+/// <summary>Null FeeInRials/ConsultationFeeInRials means the doctor exists but hasn't configured that fee yet.</summary>
+public sealed record DoctorFeeSnapshot(Guid DoctorId, long? FeeInRials, long? ConsultationFeeInRials);
