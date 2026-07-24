@@ -28,6 +28,11 @@ public sealed class Order : AuditableEntity
     public string? ThirdPartyNationalCode { get; private set; }
     public string? ThirdPartyPhoneNumber { get; private set; }
 
+    /// <summary>When true, the approving doctor's fixed consultation fee is added on top of their visit fee, and after
+    /// payment the order routes through customer self-upload + doctor opinion instead of finishing once the doctor is done.</summary>
+    public bool RequestsConsultation { get; private set; }
+    public string? ConsultationOpinion { get; private set; }
+
     public OrderStatus Status { get; private set; }
 
     public Guid? DoctorId { get; private set; }
@@ -53,7 +58,8 @@ public sealed class Order : AuditableEntity
         string? customerUploadedFileKey,
         BasicInsuranceType basicInsurance,
         SupplementaryInsuranceType supplementaryInsurance,
-        ThirdPartyBeneficiary? thirdParty)
+        ThirdPartyBeneficiary? thirdParty,
+        bool requestsConsultation)
     {
         var distinctTestIds = labTestIds.Distinct().ToList();
         if (distinctTestIds.Count == 0)
@@ -77,6 +83,7 @@ public sealed class Order : AuditableEntity
             IsForThirdParty = thirdParty is not null,
             ThirdPartyNationalCode = thirdParty?.NationalCode,
             ThirdPartyPhoneNumber = thirdParty?.PhoneNumber,
+            RequestsConsultation = requestsConsultation,
             Status = OrderStatus.Draft,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
@@ -121,12 +128,18 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
-    public void Approve(Guid doctorId, long feeInRials)
+    public void Approve(Guid doctorId, long feeInRials, long? consultationFeeInRials)
     {
         EnsureActiveClaimBy(doctorId);
         OrderStateMachine.EnsureCanTransition(Status, OrderStatus.AwaitingPayment);
+
+        if (RequestsConsultation && consultationFeeInRials is null)
+        {
+            throw new ConflictException("پزشک هنوز هزینه مشاوره خود را در پنل مدیریتی تعیین نکرده است.");
+        }
+
         DoctorId = doctorId;
-        PriceInRials = feeInRials;
+        PriceInRials = feeInRials + (RequestsConsultation ? consultationFeeInRials!.Value : 0);
         Status = OrderStatus.AwaitingPayment;
         Touch();
     }
@@ -172,11 +185,15 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
+    /// <summary>Non-consultation orders proceed to InProgress for the doctor to upload the result and complete it
+    /// as before. Consultation orders skip straight to AwaitingTestResultUpload since the doctor has nothing to
+    /// upload themselves — the customer uploads their own test result next.</summary>
     public void ConfirmPayment(string referenceId)
     {
-        OrderStateMachine.EnsureCanTransition(Status, OrderStatus.InProgress);
+        var targetStatus = RequestsConsultation ? OrderStatus.AwaitingTestResultUpload : OrderStatus.InProgress;
+        OrderStateMachine.EnsureCanTransition(Status, targetStatus);
         PaymentReferenceId = referenceId;
-        Status = OrderStatus.InProgress;
+        Status = targetStatus;
         Touch();
     }
 
@@ -199,6 +216,25 @@ public sealed class Order : AuditableEntity
         }
 
         OrderStateMachine.EnsureCanTransition(Status, OrderStatus.Completed);
+        Status = OrderStatus.Completed;
+        CompletedAtUtc = DateTimeOffset.UtcNow;
+        Touch();
+    }
+
+    /// <summary>Consultation orders only: the customer uploads their own test result once it's ready.</summary>
+    public void UploadConsultationTestResult(string resultFileKey)
+    {
+        OrderStateMachine.EnsureCanTransition(Status, OrderStatus.AwaitingConsultationOpinion);
+        ResultFileKey = resultFileKey;
+        Status = OrderStatus.AwaitingConsultationOpinion;
+        Touch();
+    }
+
+    /// <summary>Consultation orders only: the doctor's written opinion on the uploaded result completes the order.</summary>
+    public void SubmitConsultationOpinion(string opinion)
+    {
+        OrderStateMachine.EnsureCanTransition(Status, OrderStatus.Completed);
+        ConsultationOpinion = opinion;
         Status = OrderStatus.Completed;
         CompletedAtUtc = DateTimeOffset.UtcNow;
         Touch();

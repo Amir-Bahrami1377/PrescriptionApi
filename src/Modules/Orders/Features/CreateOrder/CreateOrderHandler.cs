@@ -47,7 +47,8 @@ public sealed class CreateOrderHandler(
             objectKey,
             request.BasicInsurance,
             request.SupplementaryInsurance,
-            thirdParty);
+            thirdParty,
+            request.RequestsConsultation);
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);

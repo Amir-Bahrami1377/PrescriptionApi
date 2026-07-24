@@ -23,7 +23,12 @@ public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext, IIdentit
                 throw new DomainException("پزشک هنوز هزینه ویزیت خود را در پنل مدیریتی تعیین نکرده است.");
             }
 
-            order.Approve(request.DoctorId, feeInRials);
+            if (order.RequestsConsultation && doctorFee.ConsultationFeeInRials is null)
+            {
+                throw new DomainException("پزشک هنوز هزینه مشاوره خود را در پنل مدیریتی تعیین نکرده است.");
+            }
+
+            order.Approve(request.DoctorId, feeInRials, doctorFee.ConsultationFeeInRials);
         }
         else
         {

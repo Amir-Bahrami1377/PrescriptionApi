@@ -14,6 +14,7 @@ public sealed record CreateOrderCommand(
     SupplementaryInsuranceType SupplementaryInsurance,
     bool IsForThirdParty,
     string? ThirdPartyNationalCode,
-    string? ThirdPartyPhoneNumber) : IRequest<CreateOrderResponse>;
+    string? ThirdPartyPhoneNumber,
+    bool RequestsConsultation) : IRequest<CreateOrderResponse>;
 
 public sealed record CreateOrderResponse(Guid OrderId, string Status);

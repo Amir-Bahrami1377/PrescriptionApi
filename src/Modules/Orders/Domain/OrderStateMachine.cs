@@ -13,8 +13,10 @@ public static class OrderStateMachine
     {
         [OrderStatus.Draft] = [OrderStatus.PendingDoctorApproval],
         [OrderStatus.PendingDoctorApproval] = [OrderStatus.AwaitingPayment, OrderStatus.Rejected],
-        [OrderStatus.AwaitingPayment] = [OrderStatus.InProgress],
+        [OrderStatus.AwaitingPayment] = [OrderStatus.InProgress, OrderStatus.AwaitingTestResultUpload],
         [OrderStatus.InProgress] = [OrderStatus.Completed],
+        [OrderStatus.AwaitingTestResultUpload] = [OrderStatus.AwaitingConsultationOpinion],
+        [OrderStatus.AwaitingConsultationOpinion] = [OrderStatus.Completed],
         [OrderStatus.Completed] = [],
         [OrderStatus.Rejected] = [],
     };

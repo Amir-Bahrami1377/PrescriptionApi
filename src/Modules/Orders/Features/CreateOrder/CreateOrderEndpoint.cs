@@ -24,6 +24,10 @@ public sealed class CreateOrderFormDto
     public bool IsForThirdParty { get; init; }
     public string? ThirdPartyNationalCode { get; init; }
     public string? ThirdPartyPhoneNumber { get; init; }
+
+    /// <summary>When true, a doctor-configured consultation fee is added to the price and the order
+    /// routes through customer self-upload + doctor opinion after payment instead of finishing once the doctor is done.</summary>
+    public bool RequestsConsultation { get; init; }
 }
 
 public sealed class CreateOrderEndpoint : IEndpoint
@@ -76,6 +80,7 @@ public sealed class CreateOrderEndpoint : IEndpoint
                 var isForThirdParty = bool.TryParse(form["isForThirdParty"], out var forThirdParty) && forThirdParty;
                 var thirdPartyNationalCode = form["thirdPartyNationalCode"].ToString() is { Length: > 0 } nationalCode ? nationalCode : null;
                 var thirdPartyPhoneNumber = form["thirdPartyPhoneNumber"].ToString() is { Length: > 0 } phoneNumber ? phoneNumber : null;
+                var requestsConsultation = bool.TryParse(form["requestsConsultation"], out var consultation) && consultation;
 
                 var command = new CreateOrderCommand(
                     customerId,
@@ -88,7 +93,8 @@ public sealed class CreateOrderEndpoint : IEndpoint
                     supplementaryInsurance,
                     isForThirdParty,
                     thirdPartyNationalCode,
-                    thirdPartyPhoneNumber);
+                    thirdPartyPhoneNumber,
+                    requestsConsultation);
                 var response = await sender.Send(command, cancellationToken);
 
                 return Results.Created($"/api/orders/{response.OrderId}", response);

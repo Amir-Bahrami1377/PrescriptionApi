@@ -7,8 +7,9 @@ namespace Prescription.Modules.Orders.Tests;
 public class OrderTests
 {
     private const long DoctorFee = 500_000;
+    private const long ConsultationFee = 200_000;
 
-    private static Order CreateOrder() =>
+    private static Order CreateOrder(bool requestsConsultation = false) =>
         Order.Create(
             Guid.NewGuid(),
             [Guid.NewGuid(), Guid.NewGuid()],
@@ -16,12 +17,20 @@ public class OrderTests
             customerUploadedFileKey: "file-key",
             basicInsurance: BasicInsuranceType.SocialSecurity,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: null);
+            thirdParty: null,
+            requestsConsultation: requestsConsultation);
 
-    private static Order CreateClaimedOrder(Guid doctorId)
+    private static Order CreateClaimedOrder(Guid doctorId, bool requestsConsultation = false)
     {
-        var order = CreateOrder();
+        var order = CreateOrder(requestsConsultation);
         order.ClaimForReview(doctorId);
+        return order;
+    }
+
+    private static Order CreateApprovedOrder(Guid doctorId, bool requestsConsultation = false)
+    {
+        var order = CreateClaimedOrder(doctorId, requestsConsultation);
+        order.Approve(doctorId, DoctorFee, requestsConsultation ? ConsultationFee : null);
         return order;
     }
 
@@ -54,7 +63,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: null);
+            thirdParty: null,
+            requestsConsultation: false);
 
         order.LabTestIds.Should().BeEquivalentTo([testId1, testId2]);
     }
@@ -71,7 +81,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: null);
+            thirdParty: null,
+            requestsConsultation: false);
 
         order.LabTestIds.Should().HaveCount(1);
     }
@@ -86,7 +97,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: null);
+            thirdParty: null,
+            requestsConsultation: false);
 
         act.Should().Throw<DomainException>();
     }
@@ -101,7 +113,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: null);
+            thirdParty: null,
+            requestsConsultation: false);
 
         order.CustomerUploadedFileKey.Should().BeNull();
         order.Status.Should().Be(OrderStatus.PendingDoctorApproval);
@@ -127,7 +140,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.SocialSecurity,
             supplementaryInsurance: SupplementaryInsuranceType.Dana,
-            thirdParty: new ThirdPartyBeneficiary("0499370899", "09121112233"));
+            thirdParty: new ThirdPartyBeneficiary("0499370899", "09121112233"),
+            requestsConsultation: false);
 
         order.IsForThirdParty.Should().BeTrue();
         order.ThirdPartyNationalCode.Should().Be("0499370899");
@@ -148,7 +162,8 @@ public class OrderTests
             customerUploadedFileKey: null,
             basicInsurance: BasicInsuranceType.None,
             supplementaryInsurance: SupplementaryInsuranceType.None,
-            thirdParty: new ThirdPartyBeneficiary(nationalCode, phoneNumber));
+            thirdParty: new ThirdPartyBeneficiary(nationalCode, phoneNumber),
+            requestsConsultation: false);
 
         act.Should().Throw<DomainException>();
     }
@@ -204,8 +219,7 @@ public class OrderTests
     public void ClaimForReview_NotPendingDoctorApproval_Throws()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
 
         var act = () => order.ClaimForReview(Guid.NewGuid());
 
@@ -217,7 +231,7 @@ public class OrderTests
     {
         var order = CreateOrder();
 
-        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
+        var act = () => order.Approve(Guid.NewGuid(), DoctorFee, null);
 
         act.Should().Throw<ConflictException>();
     }
@@ -228,7 +242,7 @@ public class OrderTests
         var order = CreateOrder();
         order.ClaimForReview(Guid.NewGuid());
 
-        var act = () => order.Approve(Guid.NewGuid(), DoctorFee);
+        var act = () => order.Approve(Guid.NewGuid(), DoctorFee, null);
 
         act.Should().Throw<ConflictException>();
     }
@@ -239,7 +253,7 @@ public class OrderTests
         var doctorId = Guid.NewGuid();
         var order = CreateClaimedOrder(doctorId);
 
-        order.Approve(doctorId, DoctorFee);
+        order.Approve(doctorId, DoctorFee, null);
 
         order.Status.Should().Be(OrderStatus.AwaitingPayment);
         order.DoctorId.Should().Be(doctorId);
@@ -251,10 +265,31 @@ public class OrderTests
     public void Approve_WhenAlreadyApproved_Throws()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
 
-        var act = () => order.Approve(doctorId, DoctorFee);
+        var act = () => order.Approve(doctorId, DoctorFee, null);
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void Approve_ConsultationRequested_AddsConsultationFeeToPrice()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId, requestsConsultation: true);
+
+        order.Approve(doctorId, DoctorFee, ConsultationFee);
+
+        order.PriceInRials.Should().Be(DoctorFee + ConsultationFee);
+    }
+
+    [Fact]
+    public void Approve_ConsultationRequested_WithoutConsultationFee_Throws()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateClaimedOrder(doctorId, requestsConsultation: true);
+
+        var act = () => order.Approve(doctorId, DoctorFee, null);
 
         act.Should().Throw<ConflictException>();
     }
@@ -296,8 +331,7 @@ public class OrderTests
     public void AttachPrescriptionReference_AfterApproval_Succeeds()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
 
         order.AttachPrescriptionReference("REF-123");
 
@@ -318,14 +352,25 @@ public class OrderTests
     public void ConfirmPayment_FromAwaitingPayment_TransitionsToInProgress()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
         order.RecordPaymentInitiated("authority-1");
 
         order.ConfirmPayment("ref-1");
 
         order.Status.Should().Be(OrderStatus.InProgress);
         order.PaymentReferenceId.Should().Be("ref-1");
+    }
+
+    [Fact]
+    public void ConfirmPayment_ConsultationRequested_TransitionsToAwaitingTestResultUpload()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
+        order.RecordPaymentInitiated("authority-1");
+
+        order.ConfirmPayment("ref-1");
+
+        order.Status.Should().Be(OrderStatus.AwaitingTestResultUpload);
     }
 
     [Fact]
@@ -342,8 +387,7 @@ public class OrderTests
     public void Complete_WithoutUploadedResult_Throws()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
 
@@ -356,8 +400,7 @@ public class OrderTests
     public void Complete_AfterResultUploaded_TransitionsToCompleted_AndSetsCompletedAtUtc()
     {
         var doctorId = Guid.NewGuid();
-        var order = CreateClaimedOrder(doctorId);
-        order.Approve(doctorId, DoctorFee);
+        var order = CreateApprovedOrder(doctorId);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
         order.UploadResult("result-key");
@@ -365,6 +408,56 @@ public class OrderTests
         order.Complete();
 
         order.Status.Should().Be(OrderStatus.Completed);
+        order.CompletedAtUtc.Should().NotBeNull();
+    }
+
+    [Fact]
+    public void UploadConsultationTestResult_WhenNotAwaitingTestResultUpload_Throws()
+    {
+        var order = CreateOrder(requestsConsultation: true);
+
+        var act = () => order.UploadConsultationTestResult("result-key");
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void UploadConsultationTestResult_FromAwaitingTestResultUpload_TransitionsToAwaitingConsultationOpinion()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
+        order.RecordPaymentInitiated("authority-1");
+        order.ConfirmPayment("ref-1");
+
+        order.UploadConsultationTestResult("result-key");
+
+        order.Status.Should().Be(OrderStatus.AwaitingConsultationOpinion);
+        order.ResultFileKey.Should().Be("result-key");
+    }
+
+    [Fact]
+    public void SubmitConsultationOpinion_WhenNotAwaitingConsultationOpinion_Throws()
+    {
+        var order = CreateOrder(requestsConsultation: true);
+
+        var act = () => order.SubmitConsultationOpinion("نظر پزشک");
+
+        act.Should().Throw<ConflictException>();
+    }
+
+    [Fact]
+    public void SubmitConsultationOpinion_FromAwaitingConsultationOpinion_CompletesOrder()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
+        order.RecordPaymentInitiated("authority-1");
+        order.ConfirmPayment("ref-1");
+        order.UploadConsultationTestResult("result-key");
+
+        order.SubmitConsultationOpinion("نظر پزشک");
+
+        order.Status.Should().Be(OrderStatus.Completed);
+        order.ConsultationOpinion.Should().Be("نظر پزشک");
         order.CompletedAtUtc.Should().NotBeNull();
     }
 }
