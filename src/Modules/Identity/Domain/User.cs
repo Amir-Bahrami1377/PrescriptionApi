@@ -15,6 +15,10 @@ public sealed class User : AuditableEntity
     public Gender? Gender { get; private set; }
     public bool IsProfileCompleted { get; private set; }
 
+    /// <summary>False once an admin deletes the user. Soft delete, because Orders references users by
+    /// bare Guid with no FK (CustomerId/DoctorId), so removing the row would orphan order history.</summary>
+    public bool IsActive { get; private set; } = true;
+
     /// <summary>Fixed fee this doctor charges for reviewing/prescribing an order, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
     public long? DoctorFeeInRials { get; private set; }
 
@@ -28,6 +32,7 @@ public sealed class User : AuditableEntity
             PhoneNumber = phoneNumber,
             Role = role,
             IsProfileCompleted = false,
+            IsActive = true,
             CreatedAtUtc = DateTimeOffset.UtcNow,
         };
     }
@@ -45,6 +50,15 @@ public sealed class User : AuditableEntity
     public void ChangeRole(UserRole role)
     {
         Role = role;
+        // Re-adding a previously deleted phone number through the admin panel brings the account back
+        // rather than silently leaving it locked out.
+        IsActive = true;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void Deactivate()
+    {
+        IsActive = false;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 

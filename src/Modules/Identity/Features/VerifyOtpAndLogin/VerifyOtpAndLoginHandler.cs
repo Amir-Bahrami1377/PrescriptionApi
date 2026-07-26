@@ -33,6 +33,12 @@ public sealed class VerifyOtpAndLoginHandler(
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync(cancellationToken);
         }
+        else if (!user.IsActive)
+        {
+            // Without this, a deleted user would just be logged straight back in (or silently
+            // re-registered), making admin deletion meaningless.
+            throw new UnauthorizedDomainException("حساب کاربری شما غیرفعال شده است.");
+        }
 
         var (accessToken, expiresAtUtc) = jwtTokenGenerator.GenerateAccessToken(user);
 

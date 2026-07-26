@@ -8,7 +8,7 @@ public sealed class ListUsersHandler(IdentityDbContext dbContext) : IRequestHand
 {
     public async Task<IReadOnlyList<UserSummaryDto>> Handle(ListUsersQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Users.AsNoTracking();
+        var query = dbContext.Users.AsNoTracking().Where(u => u.IsActive);
 
         if (request.Role is { } role)
         {
