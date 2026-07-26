@@ -14,7 +14,15 @@ public sealed class ListMyOrdersInProgressHandler(OrdersDbContext dbContext)
             .AsNoTracking()
             .Where(o => o.DoctorId == request.DoctorId && o.Status == OrderStatus.InProgress)
             .OrderByDescending(o => o.CreatedAtUtc)
-            .Select(o => new InProgressOrderDto(o.Id, o.CustomerId, o.LabTestIds, o.ResultFileKey != null, o.CreatedAtUtc))
+            .Select(o => new InProgressOrderDto(
+                o.Id,
+                o.CustomerId,
+                o.LabTestIds,
+                o.ResultFileKey != null,
+                o.PriceInRials,
+                o.PrescriptionReferenceNumber,
+                o.RequestsConsultation,
+                o.CreatedAtUtc))
             .ToListAsync(cancellationToken);
     }
 }

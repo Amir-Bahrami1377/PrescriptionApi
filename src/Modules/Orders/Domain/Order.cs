@@ -182,15 +182,13 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
-    /// <summary>Non-consultation orders proceed to InProgress for the doctor to upload the result and complete it
-    /// as before. Consultation orders skip straight to AwaitingTestResultUpload since the doctor has nothing to
-    /// upload themselves — the customer uploads their own test result next.</summary>
+    /// <summary>Every paid order — consultation or not — enters InProgress, which is where the doctor
+    /// writes the prescription and registers the tracking number the customer takes to the lab.</summary>
     public void ConfirmPayment(string referenceId)
     {
-        var targetStatus = RequestsConsultation ? OrderStatus.AwaitingTestResultUpload : OrderStatus.InProgress;
-        OrderStateMachine.EnsureCanTransition(Status, targetStatus);
+        OrderStateMachine.EnsureCanTransition(Status, OrderStatus.InProgress);
         PaymentReferenceId = referenceId;
-        Status = targetStatus;
+        Status = OrderStatus.InProgress;
         Touch();
     }
 
@@ -205,16 +203,23 @@ public sealed class Order : AuditableEntity
         Touch();
     }
 
+    /// <summary>
+    /// The doctor signing off their part of the order. For a plain order that ends it — the customer
+    /// already has the prescription tracking number and takes it to the lab themselves, so no result
+    /// file is required here. For a consultation order this is instead the hand-off point: two steps
+    /// remain (the customer uploads their result, then the doctor gives an opinion on it).
+    /// </summary>
     public void Complete()
     {
-        if (ResultFileKey is null)
+        var targetStatus = RequestsConsultation ? OrderStatus.AwaitingTestResultUpload : OrderStatus.Completed;
+        OrderStateMachine.EnsureCanTransition(Status, targetStatus);
+
+        Status = targetStatus;
+        if (targetStatus == OrderStatus.Completed)
         {
-            throw new ConflictException("پیش از تکمیل سفارش باید جواب آزمایش بارگذاری شود.");
+            CompletedAtUtc = DateTimeOffset.UtcNow;
         }
 
-        OrderStateMachine.EnsureCanTransition(Status, OrderStatus.Completed);
-        Status = OrderStatus.Completed;
-        CompletedAtUtc = DateTimeOffset.UtcNow;
         Touch();
     }
 

@@ -354,7 +354,7 @@ public class OrderTests
     }
 
     [Fact]
-    public void ConfirmPayment_ConsultationRequested_TransitionsToAwaitingTestResultUpload()
+    public void ConfirmPayment_ConsultationRequested_AlsoTransitionsToInProgress()
     {
         var doctorId = Guid.NewGuid();
         var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
@@ -362,7 +362,9 @@ public class OrderTests
 
         order.ConfirmPayment("ref-1");
 
-        order.Status.Should().Be(OrderStatus.AwaitingTestResultUpload);
+        // Consultation orders still pass through InProgress — that's where the doctor writes the
+        // prescription and registers the tracking number the customer takes to the lab.
+        order.Status.Should().Be(OrderStatus.InProgress);
     }
 
     [Fact]
@@ -376,16 +378,19 @@ public class OrderTests
     }
 
     [Fact]
-    public void Complete_WithoutUploadedResult_Throws()
+    public void Complete_WithoutUploadedResult_StillCompletes()
     {
         var doctorId = Guid.NewGuid();
         var order = CreateApprovedOrder(doctorId);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
 
-        var act = () => order.Complete();
+        order.Complete();
 
-        act.Should().Throw<ConflictException>();
+        // A plain order needs no result file: the customer already has the prescription tracking
+        // number and goes to the lab themselves.
+        order.Status.Should().Be(OrderStatus.Completed);
+        order.ResultFileKey.Should().BeNull();
     }
 
     [Fact]
@@ -414,12 +419,27 @@ public class OrderTests
     }
 
     [Fact]
+    public void Complete_ConsultationRequested_HandsOffToTestResultUploadInsteadOfFinishing()
+    {
+        var doctorId = Guid.NewGuid();
+        var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
+        order.RecordPaymentInitiated("authority-1");
+        order.ConfirmPayment("ref-1");
+
+        order.Complete();
+
+        order.Status.Should().Be(OrderStatus.AwaitingTestResultUpload);
+        order.CompletedAtUtc.Should().BeNull();
+    }
+
+    [Fact]
     public void UploadConsultationTestResult_FromAwaitingTestResultUpload_TransitionsToAwaitingConsultationOpinion()
     {
         var doctorId = Guid.NewGuid();
         var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
+        order.Complete();
 
         order.UploadConsultationTestResult("result-key");
 
@@ -444,6 +464,7 @@ public class OrderTests
         var order = CreateApprovedOrder(doctorId, requestsConsultation: true);
         order.RecordPaymentInitiated("authority-1");
         order.ConfirmPayment("ref-1");
+        order.Complete();
         order.UploadConsultationTestResult("result-key");
 
         order.SubmitConsultationOpinion("نظر پزشک");

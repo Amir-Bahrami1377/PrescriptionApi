@@ -13,8 +13,10 @@ public static class OrderStateMachine
     {
         [OrderStatus.Draft] = [OrderStatus.PendingDoctorApproval],
         [OrderStatus.PendingDoctorApproval] = [OrderStatus.AwaitingPayment, OrderStatus.Rejected],
-        [OrderStatus.AwaitingPayment] = [OrderStatus.InProgress, OrderStatus.AwaitingTestResultUpload],
-        [OrderStatus.InProgress] = [OrderStatus.Completed],
+        [OrderStatus.AwaitingPayment] = [OrderStatus.InProgress],
+        // InProgress forks on the doctor's sign-off: a plain order finishes, a consultation order
+        // hands off to the customer to upload their result.
+        [OrderStatus.InProgress] = [OrderStatus.Completed, OrderStatus.AwaitingTestResultUpload],
         [OrderStatus.AwaitingTestResultUpload] = [OrderStatus.AwaitingConsultationOpinion],
         [OrderStatus.AwaitingConsultationOpinion] = [OrderStatus.Completed],
         [OrderStatus.Completed] = [],

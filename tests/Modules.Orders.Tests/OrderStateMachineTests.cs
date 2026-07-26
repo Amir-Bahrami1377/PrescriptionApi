@@ -11,8 +11,8 @@ public class OrderStateMachineTests
     [InlineData(OrderStatus.PendingDoctorApproval, OrderStatus.AwaitingPayment)]
     [InlineData(OrderStatus.PendingDoctorApproval, OrderStatus.Rejected)]
     [InlineData(OrderStatus.AwaitingPayment, OrderStatus.InProgress)]
-    [InlineData(OrderStatus.AwaitingPayment, OrderStatus.AwaitingTestResultUpload)]
     [InlineData(OrderStatus.InProgress, OrderStatus.Completed)]
+    [InlineData(OrderStatus.InProgress, OrderStatus.AwaitingTestResultUpload)]
     [InlineData(OrderStatus.AwaitingTestResultUpload, OrderStatus.AwaitingConsultationOpinion)]
     [InlineData(OrderStatus.AwaitingConsultationOpinion, OrderStatus.Completed)]
     public void EnsureCanTransition_AllowedTransition_DoesNotThrow(OrderStatus from, OrderStatus to)
@@ -30,7 +30,7 @@ public class OrderStateMachineTests
     [InlineData(OrderStatus.InProgress, OrderStatus.AwaitingPayment)]
     [InlineData(OrderStatus.Completed, OrderStatus.InProgress)]
     [InlineData(OrderStatus.Rejected, OrderStatus.PendingDoctorApproval)]
-    [InlineData(OrderStatus.InProgress, OrderStatus.AwaitingTestResultUpload)]
+    [InlineData(OrderStatus.AwaitingPayment, OrderStatus.AwaitingTestResultUpload)]
     [InlineData(OrderStatus.AwaitingTestResultUpload, OrderStatus.Completed)]
     [InlineData(OrderStatus.AwaitingConsultationOpinion, OrderStatus.AwaitingTestResultUpload)]
     public void EnsureCanTransition_DisallowedTransition_ThrowsConflictException(OrderStatus from, OrderStatus to)
