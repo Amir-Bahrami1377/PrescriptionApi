@@ -28,4 +28,13 @@ public sealed class LabTest : AuditableEntity
         IsActive = isActive;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
+
+    /// <summary>Soft delete: the row stays so historical orders keep resolving the test they were placed
+    /// for (Order.LabTestIds holds bare Guids with no FK), while both the catalog listing and the
+    /// cross-module lookup already filter on IsActive, so it disappears from every caller's view.</summary>
+    public void Deactivate()
+    {
+        IsActive = false;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
 }
