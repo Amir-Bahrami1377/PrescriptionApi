@@ -9,6 +9,7 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options, I
     : DbContext(options), IUnitOfWork
 {
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<PrescriptionRenewal> PrescriptionRenewals => Set<PrescriptionRenewal>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,6 +50,36 @@ public sealed class OrdersDbContext(DbContextOptions<OrdersDbContext> options, I
                 .HasColumnName("lab_test_ids");
 
             builder.Property(o => o.RowVersion)
+                .HasColumnName("xmin")
+                .HasColumnType("xid")
+                .ValueGeneratedOnAddOrUpdate()
+                .IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<PrescriptionRenewal>(builder =>
+        {
+            builder.ToTable("prescription_renewals");
+            builder.HasKey(r => r.Id);
+            builder.Property(r => r.Status).HasConversion<string>().HasMaxLength(30);
+            builder.Property(r => r.BasicInsurance).HasConversion<string>().HasMaxLength(30);
+            builder.Property(r => r.CurrentPrescriptionReferenceNumber).HasMaxLength(200).IsRequired();
+            builder.Property(r => r.NewPrescriptionReferenceNumber).HasMaxLength(200);
+            builder.Property(r => r.RejectionReason).HasMaxLength(1000);
+            builder.Property(r => r.PaymentAuthority).HasMaxLength(100);
+            builder.Property(r => r.PaymentReferenceId).HasMaxLength(100);
+
+            // Same column-level encryption as every other national code in the system.
+            builder.Property(r => r.NationalCode)
+                .HasConversion(
+                    plain => columnEncryptor.Encrypt(plain),
+                    cipher => columnEncryptor.Decrypt(cipher))
+                .HasMaxLength(500)
+                .IsRequired();
+
+            builder.HasIndex(r => r.CustomerId);
+            builder.HasIndex(r => r.Status);
+
+            builder.Property(r => r.RowVersion)
                 .HasColumnName("xmin")
                 .HasColumnType("xid")
                 .ValueGeneratedOnAddOrUpdate()
