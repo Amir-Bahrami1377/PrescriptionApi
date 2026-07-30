@@ -8,7 +8,12 @@ namespace Prescription.SharedKernel.Abstractions;
 public interface IIdentityLookup
 {
     Task<DoctorFeeSnapshot?> GetDoctorFeeAsync(Guid doctorId, CancellationToken cancellationToken = default);
+
+    /// <summary>Checked against the database on every request rather than trusting a role claim, so an
+    /// admin granting or revoking the capability takes effect immediately instead of after the
+    /// patient's next login.</summary>
+    Task<bool> IsSpecialPatientAsync(Guid userId, CancellationToken cancellationToken = default);
 }
 
-/// <summary>Null FeeInRials/ConsultationFeeInRials means the doctor exists but hasn't configured that fee yet.</summary>
-public sealed record DoctorFeeSnapshot(Guid DoctorId, long? FeeInRials, long? ConsultationFeeInRials);
+/// <summary>A null fee means the doctor exists but hasn't configured that particular fee yet.</summary>
+public sealed record DoctorFeeSnapshot(Guid DoctorId, long? FeeInRials, long? ConsultationFeeInRials, long? RenewalFeeInRials);

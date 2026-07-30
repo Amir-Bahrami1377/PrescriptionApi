@@ -42,6 +42,6 @@ public sealed class VerifyOtpAndLoginHandler(
 
         var (accessToken, expiresAtUtc) = jwtTokenGenerator.GenerateAccessToken(user);
 
-        return new VerifyOtpAndLoginResponse(accessToken, expiresAtUtc, user.Role.ToString(), user.IsProfileCompleted);
+        return new VerifyOtpAndLoginResponse(accessToken, expiresAtUtc, user.Role.ToString(), user.IsProfileCompleted, user.IsSpecialPatient);
     }
 }

@@ -12,7 +12,14 @@ internal sealed class IdentityLookup(IdentityDbContext dbContext) : IIdentityLoo
         return await dbContext.Users
             .AsNoTracking()
             .Where(u => u.Id == doctorId && u.Role == UserRole.Doctor)
-            .Select(u => new DoctorFeeSnapshot(u.Id, u.DoctorFeeInRials, u.ConsultationFeeInRials))
+            .Select(u => new DoctorFeeSnapshot(u.Id, u.DoctorFeeInRials, u.ConsultationFeeInRials, u.RenewalFeeInRials))
             .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<bool> IsSpecialPatientAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(u => u.Id == userId && u.IsActive && u.IsSpecialPatient, cancellationToken);
     }
 }

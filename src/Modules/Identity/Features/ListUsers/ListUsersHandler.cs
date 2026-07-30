@@ -17,7 +17,15 @@ public sealed class ListUsersHandler(IdentityDbContext dbContext) : IRequestHand
 
         return await query
             .OrderByDescending(u => u.CreatedAtUtc)
-            .Select(u => new UserSummaryDto(u.Id, u.PhoneNumber, u.Role.ToString(), u.FullName, u.IsProfileCompleted, u.DoctorFeeInRials, u.CreatedAtUtc))
+            .Select(u => new UserSummaryDto(
+                u.Id,
+                u.PhoneNumber,
+                u.Role.ToString(),
+                u.FullName,
+                u.IsProfileCompleted,
+                u.DoctorFeeInRials,
+                u.IsSpecialPatient,
+                u.CreatedAtUtc))
             .ToListAsync(cancellationToken);
     }
 }

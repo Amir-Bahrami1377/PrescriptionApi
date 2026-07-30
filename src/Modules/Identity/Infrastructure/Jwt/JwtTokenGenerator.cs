@@ -8,6 +8,8 @@ namespace Prescription.Modules.Identity.Infrastructure.Jwt;
 
 public sealed class JwtTokenGenerator(IOptions<JwtOptions> options) : IJwtTokenGenerator
 {
+    public const string SpecialPatientClaimType = "special_patient";
+
     private readonly JwtOptions _options = options.Value;
 
     public (string AccessToken, DateTimeOffset ExpiresAtUtc) GenerateAccessToken(User user)
@@ -21,6 +23,9 @@ public sealed class JwtTokenGenerator(IOptions<JwtOptions> options) : IJwtTokenG
             new(ClaimTypes.MobilePhone, user.PhoneNumber),
             new(ClaimTypes.Role, user.Role.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            // UI hint only, so the client can show/hide the renewal section. Authorization is enforced
+            // against the database, since this claim goes stale the moment an admin changes it.
+            new(SpecialPatientClaimType, user.IsSpecialPatient ? "true" : "false"),
         };
 
         var signingKey = new SymmetricSecurityKey(Convert.FromBase64String(_options.SigningKey));

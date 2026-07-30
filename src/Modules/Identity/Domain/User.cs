@@ -25,6 +25,14 @@ public sealed class User : AuditableEntity
     /// <summary>Fixed fee this doctor charges for giving a consultation opinion on an uploaded test result, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
     public long? ConsultationFeeInRials { get; private set; }
 
+    /// <summary>Fixed tariff this doctor charges for renewing a prescription, set by the doctor themselves. Meaningful only when Role == Doctor.</summary>
+    public long? RenewalFeeInRials { get; private set; }
+
+    /// <summary>Prescription renewal is invite-only: a capability an admin grants on top of the normal
+    /// Customer role rather than a role of its own, so these patients keep every ability an ordinary
+    /// customer has (placing lab orders, paying, uploading results).</summary>
+    public bool IsSpecialPatient { get; private set; }
+
     public static User RegisterFromPhoneNumber(string phoneNumber, UserRole role = UserRole.Customer)
     {
         return new User
@@ -53,6 +61,25 @@ public sealed class User : AuditableEntity
         // Re-adding a previously deleted phone number through the admin panel brings the account back
         // rather than silently leaving it locked out.
         IsActive = true;
+
+        // Special patient is a customer-only capability; promoting someone to staff drops it so the
+        // account can't sit in a half-meaningful state.
+        if (role != UserRole.Customer)
+        {
+            IsSpecialPatient = false;
+        }
+
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void SetSpecialPatient(bool isSpecialPatient)
+    {
+        if (isSpecialPatient && Role != UserRole.Customer)
+        {
+            throw new ConflictException("نقش بیمار ویژه فقط برای کاربران عادی (بیمار) قابل تعریف است.");
+        }
+
+        IsSpecialPatient = isSpecialPatient;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 
@@ -81,6 +108,17 @@ public sealed class User : AuditableEntity
         }
 
         ConsultationFeeInRials = feeInRials;
+        UpdatedAtUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void SetRenewalFee(long feeInRials)
+    {
+        if (Role != UserRole.Doctor)
+        {
+            throw new ConflictException("فقط پزشک می‌تواند تعرفه تمدید نسخه خود را تعیین کند.");
+        }
+
+        RenewalFeeInRials = feeInRials;
         UpdatedAtUtc = DateTimeOffset.UtcNow;
     }
 }

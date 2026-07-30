@@ -12,4 +12,5 @@ public sealed record UserSummaryDto(
     string? FullName,
     bool IsProfileCompleted,
     long? DoctorFeeInRials,
+    bool IsSpecialPatient,
     DateTimeOffset CreatedAtUtc);
