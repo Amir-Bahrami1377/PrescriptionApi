@@ -160,6 +160,33 @@ public class OrderTests
         act.Should().Throw<DomainException>();
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void EnsureCustomerCanSubmitAnotherOrder_UnderTheLimit_DoesNotThrow(int pendingApprovalCount)
+    {
+        var act = () => Order.EnsureCustomerCanSubmitAnotherOrder(pendingApprovalCount);
+
+        act.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData(3)]
+    [InlineData(4)]
+    public void EnsureCustomerCanSubmitAnotherOrder_AtOrOverTheLimit_Throws(int pendingApprovalCount)
+    {
+        var act = () => Order.EnsureCustomerCanSubmitAnotherOrder(pendingApprovalCount);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void MaxPendingApprovalPerCustomer_IsThree()
+    {
+        Order.MaxPendingApprovalPerCustomer.Should().Be(3);
+    }
+
     [Fact]
     public void RequirePrice_BeforeApproval_Throws()
     {

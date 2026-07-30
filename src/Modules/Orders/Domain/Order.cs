@@ -50,6 +50,24 @@ public sealed class Order : AuditableEntity
     public string? ResultFileKey { get; private set; }
     public DateTimeOffset? CompletedAtUtc { get; private set; }
 
+    /// <summary>How many orders one customer may have queued for doctor review at the same time, so a
+    /// single account can't flood the shared pending pool every doctor picks from.</summary>
+    public const int MaxPendingApprovalPerCustomer = 3;
+
+    /// <summary>
+    /// Guards a rule that spans orders, so the caller has to supply the count — an aggregate can't see
+    /// its siblings. Kept here next to the limit itself rather than buried in the handler, mirroring
+    /// how OrderStateMachine holds the transition rules.
+    /// </summary>
+    public static void EnsureCustomerCanSubmitAnotherOrder(int pendingApprovalCount)
+    {
+        if (pendingApprovalCount >= MaxPendingApprovalPerCustomer)
+        {
+            throw new DomainException(
+                $"در هر زمان حداکثر می‌توانید {MaxPendingApprovalPerCustomer} سفارش در انتظار بررسی پزشک داشته باشید. لطفاً تا بررسی سفارش‌های قبلی صبر کنید.");
+        }
+    }
+
     public static Order Create(
         Guid customerId,
         IEnumerable<Guid> labTestIds,

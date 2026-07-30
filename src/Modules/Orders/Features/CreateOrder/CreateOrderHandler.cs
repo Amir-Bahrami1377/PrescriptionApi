@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
@@ -14,6 +15,13 @@ public sealed class CreateOrderHandler(
 {
     public async Task<CreateOrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
     {
+        // Checked before anything else so a rejected order never leaves an orphaned file in storage.
+        var pendingApprovalCount = await dbContext.Orders.CountAsync(
+            o => o.CustomerId == request.CustomerId && o.Status == OrderStatus.PendingDoctorApproval,
+            cancellationToken);
+
+        Order.EnsureCustomerCanSubmitAnotherOrder(pendingApprovalCount);
+
         var requestedTestIds = request.LabTestIds.Distinct().ToList();
 
         var tests = await catalogLookup.GetActiveTestsAsync(requestedTestIds, cancellationToken);
