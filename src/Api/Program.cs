@@ -144,16 +144,18 @@ if (migrateOnStartup)
     await migrationScope.ServiceProvider.GetRequiredService<TicketingDbContext>().Database.MigrateAsync();
 }
 
-// Seeding stays Development-only: the admin seed carries a fixed national code and the catalog seed
-// is sample data, neither of which belongs in a real deployment.
-if (app.Environment.IsDevelopment())
+// Seeding runs in every environment: the catalog holds the actual tests on offer, and without the
+// admin seed a fresh deployment would have no account able to open the admin panel. Both are
+// idempotent, so restarts neither duplicate rows nor bring back anything an admin has deleted.
+using (var seedScope = app.Services.CreateScope())
 {
-    using var seedScope = app.Services.CreateScope();
-
     var adminPhoneNumber = app.Configuration["Seed:AdminPhoneNumber"];
     if (!string.IsNullOrWhiteSpace(adminPhoneNumber))
     {
-        await IdentitySeeder.SeedAdminAsync(seedScope.ServiceProvider.GetRequiredService<IdentityDbContext>(), adminPhoneNumber);
+        await IdentitySeeder.SeedAdminAsync(
+            seedScope.ServiceProvider.GetRequiredService<IdentityDbContext>(),
+            adminPhoneNumber,
+            usePlaceholderProfile: app.Environment.IsDevelopment());
     }
 
     await CatalogSeeder.SeedLabTestsAsync(seedScope.ServiceProvider.GetRequiredService<CatalogDbContext>());

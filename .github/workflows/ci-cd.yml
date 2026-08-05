@@ -204,6 +204,7 @@ jobs:
             POSTGRES_DB=${{ secrets.POSTGRES_DB || 'prescription_db' }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER || 'postgres' }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            SEED_ADMIN_PHONE_NUMBER=${{ secrets.SEED_ADMIN_PHONE_NUMBER }}
             JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
             COLUMN_ENCRYPTION_KEY=${{ secrets.COLUMN_ENCRYPTION_KEY }}
             MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY }}

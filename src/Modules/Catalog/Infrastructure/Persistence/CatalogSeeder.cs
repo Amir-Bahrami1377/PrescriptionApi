@@ -3,7 +3,9 @@ using Prescription.Modules.Catalog.Domain;
 
 namespace Prescription.Modules.Catalog.Infrastructure.Persistence;
 
-/// <summary>Dev/local-only seeding, invoked from Program.cs alongside the auto-migration step.</summary>
+/// <summary>Seeds the catalogue on startup in every environment, invoked from Program.cs alongside the
+/// migration step. Matching on name means a test an admin has since deleted is never resurrected, and
+/// one they have renamed or edited is left alone.</summary>
 public static class CatalogSeeder
 {
     private static readonly (string Name, string Description)[] LabTests =

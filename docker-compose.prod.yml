@@ -64,6 +64,10 @@ services:
       Database__MigrateOnStartup: "true"
       ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-prescription_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
       ConnectionStrings__Redis: "redis:6379"
+      # Bootstraps the account that can open the admin panel. Required rather than optional: losing
+      # it on a fresh database would leave the deployment with no way in. Applied on every startup,
+      # so this number is always an admin — demote it from the panel and a restart restores it.
+      Seed__AdminPhoneNumber: ${SEED_ADMIN_PHONE_NUMBER:?SEED_ADMIN_PHONE_NUMBER is required}
       Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY is required}
       ColumnEncryption__Key: ${COLUMN_ENCRYPTION_KEY:?COLUMN_ENCRYPTION_KEY is required}
       MinIO__Endpoint: "minio:9000"
