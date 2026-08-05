@@ -129,23 +129,34 @@ builder.Services.AddHealthChecks()
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Migrations have to be able to run outside Development too, or a freshly deployed container comes
+// up against a database with no tables. Opt-in rather than automatic, so a multi-instance rollout
+// can switch it off and apply migrations as a deliberate step instead of racing on startup.
+var migrateOnStartup = app.Environment.IsDevelopment()
+    || app.Configuration.GetValue<bool>("Database:MigrateOnStartup");
+
+if (migrateOnStartup)
 {
     using var migrationScope = app.Services.CreateScope();
-    var identityDbContext = migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    await identityDbContext.Database.MigrateAsync();
-    var catalogDbContext = migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>();
-    await catalogDbContext.Database.MigrateAsync();
+    await migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.MigrateAsync();
+    await migrationScope.ServiceProvider.GetRequiredService<CatalogDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<OrdersDbContext>().Database.MigrateAsync();
     await migrationScope.ServiceProvider.GetRequiredService<TicketingDbContext>().Database.MigrateAsync();
+}
+
+// Seeding stays Development-only: the admin seed carries a fixed national code and the catalog seed
+// is sample data, neither of which belongs in a real deployment.
+if (app.Environment.IsDevelopment())
+{
+    using var seedScope = app.Services.CreateScope();
 
     var adminPhoneNumber = app.Configuration["Seed:AdminPhoneNumber"];
     if (!string.IsNullOrWhiteSpace(adminPhoneNumber))
     {
-        await IdentitySeeder.SeedAdminAsync(identityDbContext, adminPhoneNumber);
+        await IdentitySeeder.SeedAdminAsync(seedScope.ServiceProvider.GetRequiredService<IdentityDbContext>(), adminPhoneNumber);
     }
 
-    await CatalogSeeder.SeedLabTestsAsync(catalogDbContext);
+    await CatalogSeeder.SeedLabTestsAsync(seedScope.ServiceProvider.GetRequiredService<CatalogDbContext>());
 }
 
 app.UseExceptionHandler(_ => { });

@@ -1,0 +1,91 @@
+# Deployment compose file. Unlike docker-compose.yml (which builds from source and leans on the
+# dev defaults baked into appsettings.Development.json), this runs the image published by CI and
+# takes every secret from the environment — the deploy job writes them into a .env file next to
+# this one on the server.
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: prescription-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-prescription_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - prescription-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-prescription_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: prescription-redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  minio:
+    image: minio/minio:latest
+    container_name: prescription-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+    volumes:
+      - prescription-minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    # Written by the deploy job as the exact immutable tag that passed CI, never :latest, so a
+    # restart on the server can't silently pull a different build than the one that was deployed.
+    image: ${API_IMAGE:?API_IMAGE is required}
+    container_name: prescription-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # Production skips the Development startup path, so migrations need this explicit opt-in.
+      Database__MigrateOnStartup: "true"
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=${POSTGRES_DB:-prescription_db};Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD}"
+      ConnectionStrings__Redis: "redis:6379"
+      Jwt__SigningKey: ${JWT_SIGNING_KEY:?JWT_SIGNING_KEY is required}
+      ColumnEncryption__Key: ${COLUMN_ENCRYPTION_KEY:?COLUMN_ENCRYPTION_KEY is required}
+      MinIO__Endpoint: "minio:9000"
+      # Presigned URLs are opened by the patient's browser, so they must carry a host reachable
+      # from outside this network — see MinioFileStorageService.
+      MinIO__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required}
+      MinIO__AccessKey: ${MINIO_ACCESS_KEY}
+      MinIO__SecretKey: ${MINIO_SECRET_KEY}
+      MinIO__UseSsl: ${MINIO_USE_SSL:-false}
+      ZarinPal__MerchantId: ${ZARINPAL_MERCHANT_ID:?ZARINPAL_MERCHANT_ID is required}
+      MeliPayamak__Username: ${MELIPAYAMAK_USERNAME:?MELIPAYAMAK_USERNAME is required}
+      MeliPayamak__Password: ${MELIPAYAMAK_PASSWORD:?MELIPAYAMAK_PASSWORD is required}
+      MeliPayamak__BodyId: ${MELIPAYAMAK_BODY_ID:?MELIPAYAMAK_BODY_ID is required}
+      MeliPayamak__SenderNumber: ${MELIPAYAMAK_SENDER_NUMBER:?MELIPAYAMAK_SENDER_NUMBER is required}
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  prescription-postgres-data:
+  prescription-minio-data:

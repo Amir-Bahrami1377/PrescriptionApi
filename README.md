@@ -1,2 +1,53 @@
 # Prescription
 وبسایت تمدید نسخه آنلاین و ثبت آزمایش
+
+## CI/CD
+
+خط لوله در [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml) تعریف شده.
+
+روی هر Pull Request فقط بخش بررسی اجرا می‌شود (build، تست، و کنترل هماهنگی مایگریشن‌ها با مدل).
+روی push به `main` علاوه بر آن، ایمیج داکر ساخته و روی GHCR منتشر می‌شود و سپس روی سرور دیپلوی می‌شود.
+چون `deploy` به `image` و آن هم به هر دو job بررسی وابسته است، هیچ چیزی بدون سبز شدن تست‌های همان کامیت منتشر نمی‌شود.
+
+ایمیج با تگ کامیت (SHA) دیپلوی می‌شود نه `latest`، تا ری‌استارت سرور همان بیلدی را بالا بیاورد که دیپلوی شده بود.
+
+### Secrets مورد نیاز
+
+قبل از اولین دیپلوی باید این‌ها را در `Settings → Secrets and variables → Actions` تعریف کنی.
+برای انتشار ایمیج روی GHCR نیازی به secret نیست؛ از `GITHUB_TOKEN` خود اکشن استفاده می‌شود.
+
+**دسترسی به سرور**
+
+| Secret | توضیح |
+|---|---|
+| `SSH_HOST` | آدرس سرور |
+| `SSH_USER` | کاربر SSH |
+| `SSH_PRIVATE_KEY` | کلید خصوصی SSH (کل محتوای فایل) |
+| `SSH_PORT` | اختیاری، پیش‌فرض `22` |
+| `DEPLOY_PATH` | مسیری روی سرور که `docker-compose.prod.yml` و `.env` در آن قرار می‌گیرند |
+
+**تنظیمات برنامه**
+
+| Secret | توضیح |
+|---|---|
+| `POSTGRES_PASSWORD` | رمز دیتابیس |
+| `POSTGRES_DB` / `POSTGRES_USER` | اختیاری، پیش‌فرض `prescription_db` / `postgres` |
+| `JWT_SIGNING_KEY` | کلید امضای JWT، Base64 |
+| `COLUMN_ENCRYPTION_KEY` | کلید رمزنگاری ستون‌ها (کد ملی)، Base64 |
+| `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | اعتبارنامهٔ MinIO |
+| `MINIO_PUBLIC_ENDPOINT` | آدرسی از MinIO که از بیرون سرور قابل دسترسی است |
+| `MINIO_USE_SSL` | اختیاری، پیش‌فرض `false` |
+| `ZARINPAL_MERCHANT_ID` | مرچنت کد زرین‌پال |
+| `MELIPAYAMAK_*` | `USERNAME`، `PASSWORD`، `BODY_ID`، `SENDER_NUMBER` |
+| `API_PORT` | اختیاری، پیش‌فرض `8080` |
+
+> `JWT_SIGNING_KEY` و `COLUMN_ENCRYPTION_KEY` حتماً باید مقادیر تازه باشند.
+> مقادیر داخل `appsettings.Development.json` در مخزن کامیت شده‌اند و فقط برای توسعهٔ محلی‌اند.
+> اگر `COLUMN_ENCRYPTION_KEY` بعد از شروع کار عوض شود، کد ملی‌های رمزشدهٔ قبلی دیگر قابل خواندن نیستند.
+
+### نکتهٔ مایگریشن
+
+مایگریشن‌ها در محیط Development مثل قبل خودکار اجرا می‌شوند. برای محیط Production این کار با
+`Database__MigrateOnStartup=true` فعال می‌شود که در [`docker-compose.prod.yml`](docker-compose.prod.yml) ست شده،
+وگرنه کانتینر تازه روی دیتابیس بدون جدول بالا می‌آمد. اگر روزی چند نمونه هم‌زمان اجرا شد، بهتر است این
+گزینه خاموش و مایگریشن به‌صورت یک مرحلهٔ جدا اعمال شود تا چند نمونه هم‌زمان مایگریت نکنند.

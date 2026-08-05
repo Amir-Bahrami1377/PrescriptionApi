@@ -1,0 +1,235 @@
+name: CI/CD
+
+# Publish and deploy are jobs in this same workflow rather than a separate one triggered on
+# completion, so `needs:` guarantees nothing ships unless the tests for that exact commit went green.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  DOTNET_NOLOGO: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  IMAGE_NAME: ghcr.io/${{ github.repository }}
+
+jobs:
+  build-and-test:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      # Central Package Management means every version lives in Directory.Packages.props, so that
+      # plus the project files is the whole restore input.
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Restore
+        run: dotnet restore Prescription.slnx
+
+      - name: Build
+        run: dotnet build Prescription.slnx --configuration Release --no-restore
+
+      # The integration suite starts real Postgres and Redis containers via Testcontainers, which
+      # works unchanged here because ubuntu-latest ships a running Docker daemon.
+      - name: Test
+        run: >
+          dotnet test Prescription.slnx
+          --configuration Release
+          --no-build
+          --logger "trx;LogFileName=test-results.trx"
+          --results-directory ./test-results
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ./test-results
+          if-no-files-found: ignore
+
+  # Catches an entity change that was never turned into a migration. Without this the drift only
+  # surfaces at runtime, as EF's PendingModelChangesWarning when the app boots.
+  migrations-up-to-date:
+    name: Migrations match the model
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('Directory.Packages.props', '**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Install dotnet-ef
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Build
+        run: dotnet build Prescription.slnx --configuration Release
+
+      - name: Check every DbContext for un-migrated model changes
+        # This command compares the model against the last migration's snapshot and never opens a
+        # connection, so the unreachable host below is deliberate: it proves no database is needed.
+        env:
+          ASPNETCORE_ENVIRONMENT: Development
+          ConnectionStrings__Postgres: 'Host=no-database-needed.invalid;Port=5432;Database=x;Username=x;Password=x'
+          ConnectionStrings__Redis: 'no-database-needed.invalid:6379'
+        run: |
+          set -euo pipefail
+          check() {
+            echo "::group::$1"
+            dotnet ef migrations has-pending-model-changes \
+              --project "$2" \
+              --startup-project src/Api/Prescription.Api.csproj \
+              --context "$3" \
+              --configuration Release \
+              --no-build
+            echo "::endgroup::"
+          }
+          check Identity  src/Modules/Identity/Prescription.Modules.Identity.csproj   Prescription.Modules.Identity.Infrastructure.Persistence.IdentityDbContext
+          check Catalog   src/Modules/Catalog/Prescription.Modules.Catalog.csproj     Prescription.Modules.Catalog.Infrastructure.Persistence.CatalogDbContext
+          check Orders    src/Modules/Orders/Prescription.Modules.Orders.csproj       Prescription.Modules.Orders.Infrastructure.Persistence.OrdersDbContext
+          check Ticketing src/Modules/Ticketing/Prescription.Modules.Ticketing.csproj Prescription.Modules.Ticketing.Infrastructure.Persistence.TicketingDbContext
+
+  # On a pull request this only proves the Dockerfile still builds; the push to the registry is
+  # gated on main so forks and PRs can never publish.
+  image:
+    name: Build image
+    runs-on: ubuntu-latest
+    needs: [build-and-test, migrations-up-to-date]
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ steps.meta.outputs.image-tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # The registry path has to be lowercase; the repository owner here is mixed case.
+      - name: Compute image tag
+        id: meta
+        run: |
+          set -euo pipefail
+          name=$(echo "${IMAGE_NAME}" | tr '[:upper:]' '[:lower:]')
+          echo "image-name=${name}" >> "$GITHUB_OUTPUT"
+          echo "image-tag=${name}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ steps.meta.outputs.image-tag }}
+            ${{ steps.meta.outputs.image-name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Attach required reviewers or branch rules to this environment in repo settings if you want a
+    # manual gate in front of production.
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Copy compose file to the server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          source: docker-compose.prod.yml
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Pull the new image and restart
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          # Pinned to the commit SHA, not :latest, so this deploy is reproducible and a later
+          # restart on the server brings back this exact build.
+          API_IMAGE: ${{ needs.image.outputs.image-tag }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          envs: API_IMAGE
+          script_stop: true
+          script: |
+            set -euo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+
+            # Secrets are rewritten every deploy so rotating one in GitHub is enough. umask keeps
+            # the file unreadable to other users on the box. The heredoc is quoted so a '$' inside
+            # any password stays literal instead of being expanded away by the shell.
+            umask 077
+            {
+              echo "API_IMAGE=${API_IMAGE}"
+              cat <<'ENV_EOF'
+            API_PORT=${{ secrets.API_PORT || 8080 }}
+            POSTGRES_DB=${{ secrets.POSTGRES_DB || 'prescription_db' }}
+            POSTGRES_USER=${{ secrets.POSTGRES_USER || 'postgres' }}
+            POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+            JWT_SIGNING_KEY=${{ secrets.JWT_SIGNING_KEY }}
+            COLUMN_ENCRYPTION_KEY=${{ secrets.COLUMN_ENCRYPTION_KEY }}
+            MINIO_ACCESS_KEY=${{ secrets.MINIO_ACCESS_KEY }}
+            MINIO_SECRET_KEY=${{ secrets.MINIO_SECRET_KEY }}
+            MINIO_PUBLIC_ENDPOINT=${{ secrets.MINIO_PUBLIC_ENDPOINT }}
+            MINIO_USE_SSL=${{ secrets.MINIO_USE_SSL || 'false' }}
+            ZARINPAL_MERCHANT_ID=${{ secrets.ZARINPAL_MERCHANT_ID }}
+            MELIPAYAMAK_USERNAME=${{ secrets.MELIPAYAMAK_USERNAME }}
+            MELIPAYAMAK_PASSWORD=${{ secrets.MELIPAYAMAK_PASSWORD }}
+            MELIPAYAMAK_BODY_ID=${{ secrets.MELIPAYAMAK_BODY_ID }}
+            MELIPAYAMAK_SENDER_NUMBER=${{ secrets.MELIPAYAMAK_SENDER_NUMBER }}
+            ENV_EOF
+            } > .env
+
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            docker compose -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.prod.yml up -d
+            docker logout ghcr.io
+
+            # Fail the deploy loudly if the new container never reports healthy, instead of leaving
+            # a broken release running unnoticed.
+            for i in $(seq 1 30); do
+              status=$(docker inspect --format '{{.State.Health.Status}}' prescription-api 2>/dev/null || echo starting)
+              [ "$status" = "healthy" ] && echo "api is healthy" && exit 0
+              sleep 5
+            done
+            echo "api did not become healthy in time" >&2
+            docker compose -f docker-compose.prod.yml logs --tail 100 api >&2
+            exit 1
