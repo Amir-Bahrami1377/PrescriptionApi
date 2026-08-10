@@ -36,9 +36,9 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("ConnectionStrings__Redis", _redis.GetConnectionString());
         Environment.SetEnvironmentVariable("Jwt__SigningKey", "AZLkvtSOfz2ng8oE0jHBx2eE30RAoNlCs1k2ST/zfHU=");
         Environment.SetEnvironmentVariable("ColumnEncryption__Key", "SdgFjsUfDwN7byuQOJumTSTfS5cpS3nEnVGy7lihJ4Y=");
+        Environment.SetEnvironmentVariable("MeliPayamak__OtpApiKey", "test-key");
         Environment.SetEnvironmentVariable("MeliPayamak__Username", "test");
         Environment.SetEnvironmentVariable("MeliPayamak__Password", "test");
-        Environment.SetEnvironmentVariable("MeliPayamak__BodyId", "0");
         Environment.SetEnvironmentVariable("MeliPayamak__SenderNumber", "50002000");
         Environment.SetEnvironmentVariable("ZarinPal__MerchantId", "00000000-0000-0000-0000-000000000000");
         Environment.SetEnvironmentVariable("MinIO__Endpoint", "localhost:9000");

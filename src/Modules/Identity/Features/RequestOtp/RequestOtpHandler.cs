@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using MediatR;
 using Prescription.Modules.Identity.Domain;
 using Prescription.Modules.Identity.Infrastructure.Otp;
@@ -24,26 +23,13 @@ public sealed class RequestOtpHandler(IOtpCodeStore otpCodeStore, IOtpProvider o
             throw new RateLimitExceededException("تعداد درخواست‌های کد تایید بیش از حد مجاز است. لطفاً بعداً تلاش کنید.", RateLimitWindow);
         }
 
-        var code = GenerateNumericCode(5);
-        var codeHash = OtpCodeHasher.Hash(code);
+        // The gateway generates the code as part of sending it, so it is only known once the send has
+        // succeeded. Storing after the fact also means a failed send leaves no code behind to verify
+        // against, rather than stranding the caller with one that never arrived.
+        var code = await otpProvider.SendOtpAsync(phoneNumber, cancellationToken);
 
-        await otpCodeStore.SaveCodeAsync(phoneNumber, codeHash, CodeTtl, cancellationToken);
-        await otpProvider.SendOtpAsync(phoneNumber, code, cancellationToken);
+        await otpCodeStore.SaveCodeAsync(phoneNumber, OtpCodeHasher.Hash(code), CodeTtl, cancellationToken);
 
         return new RequestOtpResponse((int)CodeTtl.TotalSeconds);
-    }
-
-    private static string GenerateNumericCode(int length)
-    {
-        Span<byte> buffer = stackalloc byte[length];
-        RandomNumberGenerator.Fill(buffer);
-
-        var chars = new char[length];
-        for (var i = 0; i < length; i++)
-        {
-            chars[i] = (char)('0' + buffer[i] % 10);
-        }
-
-        return new string(chars);
     }
 }

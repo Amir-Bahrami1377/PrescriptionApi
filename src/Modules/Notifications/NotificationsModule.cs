@@ -18,7 +18,7 @@ public static class NotificationsModule
             {
                 var options = configuration.GetSection("MeliPayamak").Get<MeliPayamakOptions>()
                     ?? throw new InvalidOperationException("MeliPayamak configuration section is missing.");
-                client.BaseAddress = new Uri(options.BaseUrl);
+                client.BaseAddress = new Uri(options.SmsBaseUrl);
                 client.Timeout = TimeSpan.FromSeconds(10);
             })
             .AddPolicyHandler(GetRetryPolicy());

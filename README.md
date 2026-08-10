@@ -46,7 +46,8 @@
 | `MINIO_PUBLIC_ENDPOINT` | آدرسی از MinIO که از بیرون سرور قابل دسترسی است |
 | `MINIO_USE_SSL` | اختیاری، پیش‌فرض `false` |
 | `ZARINPAL_MERCHANT_ID` | مرچنت کد زرین‌پال |
-| `MELIPAYAMAK_*` | `USERNAME`، `PASSWORD`، `BODY_ID`، `SENDER_NUMBER` |
+| `MELIPAYAMAK_OTP_API_KEY` | توکنی که در مسیر `api/send/otp/{token}` قرار می‌گیرد (ر.ک. بخش پیامک) |
+| `MELIPAYAMAK_USERNAME` / `_PASSWORD` / `_SENDER_NUMBER` | اختیاری — فقط برای پیامک‌های عادی که هنوز جایی ارسال نمی‌شوند |
 | `API_PORT` | اختیاری، پیش‌فرض `8080` |
 
 > `JWT_SIGNING_KEY` و `COLUMN_ENCRYPTION_KEY` حتماً باید مقادیر تازه باشند.
@@ -71,6 +72,21 @@
 بنابراین `MINIO_PUBLIC_ENDPOINT` باید `files.noskhe.net` و `MINIO_USE_SSL` باید `true` باشد.
 
 > برنامه پشت پراکسی فقط HTTP می‌بیند، پس `UseForwardedHeaders` در [`Program.cs`](src/Api/Program.cs) هدرهای `X-Forwarded-*` را اعمال می‌کند. بدون آن، آدرس بازگشت زرین‌پال با `http://` ساخته می‌شد و مرورگر روی صفحهٔ https دنبالش نمی‌کرد.
+
+### پیامک
+
+ورود با رمز یکبار مصرف از اندپوینت `api/send/otp/{token}` کنسول ملی‌پیامک استفاده می‌کند. برخلاف روش قبلی (الگو و `bodyId`)، **کد را خود درگاه می‌سازد و در پاسخ برمی‌گرداند**؛ ما فقط شماره را می‌فرستیم و کد برگشتی را برای اعتبارسنجی ذخیره می‌کنیم. به همین دلیل طول کد را درگاه تعیین می‌کند (نمونهٔ مستندات ۱۰ رقمی است) و اعتبارسنجی سمت ما طول ثابتی را تحمیل نمی‌کند.
+
+توکن داخل مسیر یک credential است: در مخزن ذخیره نمی‌شود. برای اجرای محلی:
+
+```bash
+export MELIPAYAMAK_OTP_API_KEY=<token>
+docker compose up -d
+```
+
+یا با `dotnet user-secrets set "MeliPayamak:OtpApiKey" "<token>"` بیرون از داکر.
+
+> اگر پاسخ `{"status":"مستلزم تنظیم و تأیید مدیر"}` گرفتی، یعنی اتصال درست است ولی سرویس رمز یکبار مصرف روی حساب هنوز توسط ملی‌پیامک تأیید نشده — باید از پنل پیگیری شود.
 
 ### Seed
 
