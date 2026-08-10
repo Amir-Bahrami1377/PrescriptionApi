@@ -20,11 +20,15 @@ public sealed class MinioFileStorageService : IFileStorageService
             .WithSSL(options.UseSsl)
             .Build();
 
+        // Falls back to the internal endpoint only when no public one is configured, which is the
+        // local-development case where they are the same host.
         var publicEndpoint = string.IsNullOrWhiteSpace(options.PublicEndpoint) ? options.Endpoint : options.PublicEndpoint;
+        var publicUseSsl = string.IsNullOrWhiteSpace(options.PublicEndpoint) ? options.UseSsl : options.PublicUseSsl;
+
         _publicMinioClient = new MinioClient()
             .WithEndpoint(publicEndpoint)
             .WithCredentials(options.AccessKey, options.SecretKey)
-            .WithSSL(options.UseSsl)
+            .WithSSL(publicUseSsl)
             .Build();
     }
 

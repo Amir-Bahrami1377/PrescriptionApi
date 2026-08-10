@@ -24,18 +24,18 @@
 | `SSH_USER` | کاربر SSH |
 | `SSH_PASSWORD` | رمز عبور کاربر SSH |
 | `SSH_PORT` | اختیاری، پیش‌فرض `22` |
+| `DEPLOY_PATH` | مسیری روی سرور که `docker-compose.prod.yml` و `.env` در آن قرار می‌گیرند |
 
 > احراز هویت با رمز عبور انجام می‌شود. اگر بعداً خواستی به کلید SSH مهاجرت کنی، در
 > [`ci-cd.yml`](.github/workflows/ci-cd.yml) در هر دو مرحلهٔ deploy مقدار `password` را با `key`
 > عوض کن و به‌جای رمز، کلید خصوصی را در secret بگذار.
-| `DEPLOY_PATH` | مسیری روی سرور که `docker-compose.prod.yml` و `.env` در آن قرار می‌گیرند |
 
 **تنظیمات برنامه**
 
 | Secret | توضیح |
 |---|---|
 | `PUBLIC_DOMAIN` | دامنهٔ اصلی، مثلاً `noskhe.net` |
-| `FILES_DOMAIN` | دامنهٔ فایل‌ها، مثلاً `files.noskhe.net` (ر.ک. بخش HTTPS) |
+| `FILES_DOMAIN` | دامنهٔ فایل‌ها، مثلاً `minio.noskhe.net` (ر.ک. بخش HTTPS) |
 | `ACME_EMAIL` | ایمیل برای اعلان‌های Let's Encrypt |
 | `POSTGRES_PASSWORD` | رمز دیتابیس |
 | `POSTGRES_DB` / `POSTGRES_USER` | اختیاری، پیش‌فرض `prescription_db` / `postgres` |
@@ -44,11 +44,11 @@
 | `COLUMN_ENCRYPTION_KEY` | کلید رمزنگاری ستون‌ها (کد ملی)، Base64 |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | اعتبارنامهٔ MinIO |
 | `MINIO_PUBLIC_ENDPOINT` | آدرسی از MinIO که از بیرون سرور قابل دسترسی است |
-| `MINIO_USE_SSL` | اختیاری، پیش‌فرض `false` |
+| `MINIO_USE_SSL` | اتصال داخلی سرور به MinIO — باید `false` بماند |
+| `MINIO_PUBLIC_USE_SSL` | اسکیم آدرس‌های presigned — اختیاری، پیش‌فرض `true` |
 | `ZARINPAL_MERCHANT_ID` | مرچنت کد زرین‌پال |
 | `MELIPAYAMAK_OTP_API_KEY` | توکنی که در مسیر `api/send/otp/{token}` قرار می‌گیرد (ر.ک. بخش پیامک) |
 | `MELIPAYAMAK_USERNAME` / `_PASSWORD` / `_SENDER_NUMBER` | اختیاری — فقط برای پیامک‌های عادی که هنوز جایی ارسال نمی‌شوند |
-| `API_PORT` | اختیاری، پیش‌فرض `8080` |
 
 > `JWT_SIGNING_KEY` و `COLUMN_ENCRYPTION_KEY` حتماً باید مقادیر تازه باشند.
 > مقادیر داخل `appsettings.Development.json` در مخزن کامیت شده‌اند و فقط برای توسعهٔ محلی‌اند.
@@ -65,11 +65,20 @@
 | رکورد | برای |
 |---|---|
 | `noskhe.net` | فرانت و API |
-| `files.noskhe.net` | فایل‌های MinIO |
+| `minio.noskhe.net` | فایل‌های MinIO |
 
 دامنهٔ جدا برای فایل‌ها به این دلیل است که آدرس‌های presigned مستقیماً در مرورگر بیمار یا پزشک باز می‌شوند و روی صفحهٔ https، لینک `http://` به‌عنوان mixed content بلاک می‌شود. مسیر (`/files`) هم جواب نمی‌داد چون امضای S3 روی host و path حساب می‌شود و حذف پیشوند امضا را باطل می‌کند.
 
-بنابراین `MINIO_PUBLIC_ENDPOINT` باید `files.noskhe.net` و `MINIO_USE_SSL` باید `true` باشد.
+بنابراین `MINIO_PUBLIC_ENDPOINT` باید دقیقاً برابر `FILES_DOMAIN` باشد (اگر فرق کنند، آدرس presigned برای میزبانی امضا می‌شود که سرو نمی‌شود و دانلود شکست می‌خورد — preflight همین را چک می‌کند).
+
+دو فلگ TLS جدا هستند و **نباید یکی شوند**:
+
+| تنظیم | مقدار | چرا |
+|---|---|---|
+| `MINIO_USE_SSL` | `false` | اتصال خود سرور به `minio:9000` داخل شبکهٔ داکر، بدون TLS |
+| `MINIO_PUBLIC_USE_SSL` | `true` | آدرس presigned در مرورگر باز می‌شود و روی صفحهٔ https باید https باشد |
+
+اگر `MINIO_USE_SSL` را `true` کنی، کلاینت داخلی سراغ `https://minio:9000` می‌رود که آنجا TLS گوش نمی‌دهد و **آپلود فایل‌ها می‌شکند**.
 
 > برنامه پشت پراکسی فقط HTTP می‌بیند، پس `UseForwardedHeaders` در [`Program.cs`](src/Api/Program.cs) هدرهای `X-Forwarded-*` را اعمال می‌کند. بدون آن، آدرس بازگشت زرین‌پال با `http://` ساخته می‌شد و مرورگر روی صفحهٔ https دنبالش نمی‌کرد.
 

@@ -78,7 +78,10 @@ services:
       MinIO__PublicEndpoint: ${MINIO_PUBLIC_ENDPOINT:?MINIO_PUBLIC_ENDPOINT is required}
       MinIO__AccessKey: ${MINIO_ACCESS_KEY}
       MinIO__SecretKey: ${MINIO_SECRET_KEY}
+      # Stays off: this is the server's own hop to minio:9000 inside the container network.
       MinIO__UseSsl: ${MINIO_USE_SSL:-false}
+      # On: presigned URLs are opened by a browser on an https page, where an http link is blocked.
+      MinIO__PublicUseSsl: ${MINIO_PUBLIC_USE_SSL:-true}
       ZarinPal__MerchantId: ${ZARINPAL_MERCHANT_ID:?ZARINPAL_MERCHANT_ID is required}
       # Required: without it nobody can request a login code, so there is no way into the site.
       MeliPayamak__OtpApiKey: ${MELIPAYAMAK_OTP_API_KEY:?MELIPAYAMAK_OTP_API_KEY is required}

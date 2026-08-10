@@ -218,6 +218,15 @@ jobs:
             fi
           done
 
+          # Presigned URLs are signed for MINIO_PUBLIC_ENDPOINT, but only FILES_DOMAIN is actually
+          # proxied and given a certificate. If they drift apart every download 404s or fails TLS,
+          # and nothing notices until someone opens a test result.
+          minio_host="${MINIO_PUBLIC_ENDPOINT%%:*}"
+          if [ -n "$minio_host" ] && [ -n "$FILES_DOMAIN" ] && [ "$minio_host" != "$FILES_DOMAIN" ]; then
+            echo "::error::MINIO_PUBLIC_ENDPOINT ($minio_host) and FILES_DOMAIN ($FILES_DOMAIN) disagree. Presigned file URLs are signed for the former but only the latter is served, so downloads would fail."
+            failed=1
+          fi
+
           [ "$failed" -eq 0 ] || exit 1
           echo "Deploy secrets look usable."
 
