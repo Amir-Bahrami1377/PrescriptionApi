@@ -36,8 +36,15 @@ public sealed class MeliPayamakSmsProvider(HttpClient httpClient, IOptions<MeliP
         // carries the message id on success or an error code otherwise.
         if (result is null || result.RetStatus != 1)
         {
-            logger.LogError("MeliPayamak SMS send failed for {Phone}: {Status} ({Value})", phoneNumber, result?.StrRetStatus, result?.Value);
-            throw new InvalidOperationException($"MeliPayamak SMS send failed: {result?.StrRetStatus ?? "unknown error"}");
+            logger.LogError(
+                "MeliPayamak SMS send failed sending from {From} to {To}: {Status} ({Value})",
+                _options.SenderNumber, phoneNumber, result?.StrRetStatus, result?.Value);
+
+            // Both numbers are named because the gateway answers "InvalidNumber" for either of them,
+            // and the sender line — which has to be one the account actually owns — is the usual
+            // culprit. Neither is a credential.
+            throw new InvalidOperationException(
+                $"MeliPayamak SMS send failed: {result?.StrRetStatus ?? "unknown error"} (from '{_options.SenderNumber}' to '{phoneNumber}')");
         }
     }
 
