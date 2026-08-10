@@ -184,6 +184,9 @@ jobs:
           MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
           MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
           MINIO_PUBLIC_ENDPOINT: ${{ secrets.MINIO_PUBLIC_ENDPOINT }}
+          PUBLIC_DOMAIN: ${{ secrets.PUBLIC_DOMAIN }}
+          FILES_DOMAIN: ${{ secrets.FILES_DOMAIN }}
+          ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
           ZARINPAL_MERCHANT_ID: ${{ secrets.ZARINPAL_MERCHANT_ID }}
           MELIPAYAMAK_USERNAME: ${{ secrets.MELIPAYAMAK_USERNAME }}
           MELIPAYAMAK_PASSWORD: ${{ secrets.MELIPAYAMAK_PASSWORD }}
@@ -196,6 +199,7 @@ jobs:
           required="SSH_HOST SSH_USER SSH_PASSWORD DEPLOY_PATH
                     POSTGRES_PASSWORD SEED_ADMIN_PHONE_NUMBER JWT_SIGNING_KEY COLUMN_ENCRYPTION_KEY
                     MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_PUBLIC_ENDPOINT
+                    PUBLIC_DOMAIN FILES_DOMAIN ACME_EMAIL
                     ZARINPAL_MERCHANT_ID
                     MELIPAYAMAK_USERNAME MELIPAYAMAK_PASSWORD MELIPAYAMAK_BODY_ID MELIPAYAMAK_SENDER_NUMBER"
 
@@ -222,14 +226,14 @@ jobs:
 
       # Password auth, matching how the server is set up. To move to a key later, swap `password`
       # for `key` here and in the step below, and store the private key instead.
-      - name: Copy compose file to the server
+      - name: Copy compose and proxy config to the server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
-          source: docker-compose.prod.yml
+          source: "docker-compose.prod.yml,Caddyfile"
           target: ${{ secrets.DEPLOY_PATH }}
 
       - name: Pull the new image and restart
@@ -256,7 +260,9 @@ jobs:
             {
               echo "API_IMAGE=${API_IMAGE}"
               cat <<'ENV_EOF'
-            API_PORT=${{ secrets.API_PORT || 8080 }}
+            PUBLIC_DOMAIN=${{ secrets.PUBLIC_DOMAIN }}
+            FILES_DOMAIN=${{ secrets.FILES_DOMAIN }}
+            ACME_EMAIL=${{ secrets.ACME_EMAIL }}
             POSTGRES_DB=${{ secrets.POSTGRES_DB || 'prescription_db' }}
             POSTGRES_USER=${{ secrets.POSTGRES_USER || 'postgres' }}
             POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}

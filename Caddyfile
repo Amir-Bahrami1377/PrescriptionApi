@@ -1,0 +1,44 @@
+# Reverse proxy and TLS termination for the deployment. Caddy obtains and renews the Let's Encrypt
+# certificates on its own, so there is nothing to run on a schedule and nothing to rotate by hand.
+#
+# Everything sits on one host name, which keeps the browser same-origin: the frontend calls /api/...
+# as a relative path, so no CORS is involved and no API base URL has to be configured on the client.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$PUBLIC_DOMAIN} {
+	encode gzip
+
+	# The API. handle_path would strip the prefix; handle keeps it, because the routes are declared
+	# as /api/... in the application itself.
+	handle /api/* {
+		reverse_proxy api:8080
+	}
+
+	# Kept reachable so uptime checks don't have to go through an authenticated route.
+	handle /health {
+		reverse_proxy api:8080
+	}
+
+	# The frontend is deployed from its own repository. Until it is running alongside this stack,
+	# anything that isn't the API gets a plain answer rather than a confusing proxy error.
+	handle {
+		respond "Prescription API is running. See /health" 200
+	}
+}
+
+# Presigned file URLs are opened directly by the patient's or doctor's browser, so MinIO needs a
+# public HTTPS name of its own: an http:// link would be blocked as mixed content on an https page.
+# A separate host name rather than a path prefix because S3 signatures cover the host and path, and
+# rewriting a prefix away would invalidate them.
+#
+# Requires its own DNS A record pointing at this server.
+{$FILES_DOMAIN} {
+	encode gzip
+
+	# Caddy passes the original Host header upstream, which is what MinIO checks the signature
+	# against, so presigned URLs verify cleanly.
+	reverse_proxy minio:9000
+}

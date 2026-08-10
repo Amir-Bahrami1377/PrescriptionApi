@@ -34,6 +34,9 @@
 
 | Secret | توضیح |
 |---|---|
+| `PUBLIC_DOMAIN` | دامنهٔ اصلی، مثلاً `noskhe.net` |
+| `FILES_DOMAIN` | دامنهٔ فایل‌ها، مثلاً `files.noskhe.net` (ر.ک. بخش HTTPS) |
+| `ACME_EMAIL` | ایمیل برای اعلان‌های Let's Encrypt |
 | `POSTGRES_PASSWORD` | رمز دیتابیس |
 | `POSTGRES_DB` / `POSTGRES_USER` | اختیاری، پیش‌فرض `prescription_db` / `postgres` |
 | `SEED_ADMIN_PHONE_NUMBER` | شماره‌ای که دسترسی ادمین می‌گیرد (ر.ک. بخش Seed) |
@@ -49,6 +52,25 @@
 > `JWT_SIGNING_KEY` و `COLUMN_ENCRYPTION_KEY` حتماً باید مقادیر تازه باشند.
 > مقادیر داخل `appsettings.Development.json` در مخزن کامیت شده‌اند و فقط برای توسعهٔ محلی‌اند.
 > اگر `COLUMN_ENCRYPTION_KEY` بعد از شروع کار عوض شود، کد ملی‌های رمزشدهٔ قبلی دیگر قابل خواندن نیستند.
+
+### HTTPS
+
+[Caddy](Caddyfile) جلوی سرویس‌ها می‌نشیند و گواهی Let's Encrypt را خودش می‌گیرد و تمدید می‌کند؛ نه cron لازم دارد نه تمدید دستی. تنها پورت‌هایی که منتشر می‌شوند `80` و `443` روی همین سرویس‌اند — API و MinIO فقط از شبکهٔ داخلی داکر در دسترس‌اند.
+
+همه‌چیز روی یک دامنه است: فرانت روی `/` و API روی `/api`. چون هم‌مبدأ (same-origin) هستند، نه CORS لازم است نه تنظیم آدرس API در فرانت.
+
+**دو رکورد DNS لازم است، هر دو به آی‌پی همین سرور:**
+
+| رکورد | برای |
+|---|---|
+| `noskhe.net` | فرانت و API |
+| `files.noskhe.net` | فایل‌های MinIO |
+
+دامنهٔ جدا برای فایل‌ها به این دلیل است که آدرس‌های presigned مستقیماً در مرورگر بیمار یا پزشک باز می‌شوند و روی صفحهٔ https، لینک `http://` به‌عنوان mixed content بلاک می‌شود. مسیر (`/files`) هم جواب نمی‌داد چون امضای S3 روی host و path حساب می‌شود و حذف پیشوند امضا را باطل می‌کند.
+
+بنابراین `MINIO_PUBLIC_ENDPOINT` باید `files.noskhe.net` و `MINIO_USE_SSL` باید `true` باشد.
+
+> برنامه پشت پراکسی فقط HTTP می‌بیند، پس `UseForwardedHeaders` در [`Program.cs`](src/Api/Program.cs) هدرهای `X-Forwarded-*` را اعمال می‌کند. بدون آن، آدرس بازگشت زرین‌پال با `http://` ساخته می‌شد و مرورگر روی صفحهٔ https دنبالش نمی‌کرد.
 
 ### Seed
 

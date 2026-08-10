@@ -6,6 +6,7 @@ using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Prescription.Api.Auth;
 using Prescription.Api.Extensions;
@@ -57,6 +58,22 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+// TLS is terminated at the reverse proxy, so the app itself only ever sees plain HTTP. Without
+// honouring the forwarded headers every absolute URL it builds comes out as http:// — including
+// the ZarinPal callback, which a browser then refuses to follow from an https page.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost;
+
+    // The proxy's address on the container network isn't fixed, so it can't be allow-listed. This
+    // is only safe because the API port is not published to the host: the proxy is the sole route
+    // in, and nothing else is in a position to forge these headers.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 builder.Services.AddSingleton<IColumnEncryptor>(_ => new AesColumnEncryptor(new ColumnEncryptionOptions
 {
@@ -160,6 +177,9 @@ using (var seedScope = app.Services.CreateScope())
 
     await CatalogSeeder.SeedLabTestsAsync(seedScope.ServiceProvider.GetRequiredService<CatalogDbContext>());
 }
+
+// Must run before anything that reads the scheme, host or client address.
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler(_ => { });
 

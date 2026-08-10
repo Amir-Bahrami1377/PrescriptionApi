@@ -37,6 +37,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
       MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+    # No published ports: reachable only through Caddy, which fronts it with TLS. The admin console
+    # on 9001 stays off the internet entirely.
     volumes:
       - prescription-minio-data:/data
     healthcheck:
@@ -82,14 +84,38 @@ services:
       MeliPayamak__Password: ${MELIPAYAMAK_PASSWORD:?MELIPAYAMAK_PASSWORD is required}
       MeliPayamak__BodyId: ${MELIPAYAMAK_BODY_ID:?MELIPAYAMAK_BODY_ID is required}
       MeliPayamak__SenderNumber: ${MELIPAYAMAK_SENDER_NUMBER:?MELIPAYAMAK_SENDER_NUMBER is required}
-    ports:
-      - "${API_PORT:-8080}:8080"
+    # Deliberately no published ports. Caddy is the only way in, which is also what makes clearing
+    # KnownProxies in Program.cs safe — nothing else is positioned to forge X-Forwarded-* headers.
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
       timeout: 5s
       retries: 10
 
+  caddy:
+    image: caddy:2-alpine
+    container_name: prescription-caddy
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:?PUBLIC_DOMAIN is required}
+      FILES_DOMAIN: ${FILES_DOMAIN:?FILES_DOMAIN is required}
+      # Let's Encrypt uses this to warn about renewal problems before a certificate lapses.
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      # Issued certificates live here. Without this volume every restart would request new ones and
+      # run into Let's Encrypt's rate limit before long.
+      - prescription-caddy-data:/data
+      - prescription-caddy-config:/config
+
 volumes:
   prescription-postgres-data:
   prescription-minio-data:
+  prescription-caddy-data:
+  prescription-caddy-config:
