@@ -22,10 +22,14 @@
 		reverse_proxy api:8080
 	}
 
-	# The frontend is deployed from its own repository. Until it is running alongside this stack,
-	# anything that isn't the API gets a plain answer rather than a confusing proxy error.
+	# Everything else is the frontend, deployed from its own repository as a container named
+	# "frontend" on the shared "prescription" network. Vue Router's history mode is handled by that
+	# container's own nginx, which falls back to index.html.
+	#
+	# Resolved per request, not at startup, so this config loads whether or not the frontend is
+	# running — it just answers 502 until it is.
 	handle {
-		respond "Prescription API is running. See /health" 200
+		reverse_proxy frontend:80
 	}
 }
 

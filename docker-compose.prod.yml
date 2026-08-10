@@ -120,6 +120,13 @@ services:
       - prescription-caddy-data:/data
       - prescription-caddy-config:/config
 
+# Named explicitly rather than left as "<project>_default", whose name depends on the deploy
+# directory. The frontend is deployed from its own repository and has to join this network for Caddy
+# to reach it, so the name has to be something it can rely on rather than infer.
+networks:
+  default:
+    name: prescription
+
 volumes:
   prescription-postgres-data:
   prescription-minio-data:
