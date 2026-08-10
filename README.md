@@ -22,8 +22,12 @@
 |---|---|
 | `SSH_HOST` | آدرس سرور |
 | `SSH_USER` | کاربر SSH |
-| `SSH_PRIVATE_KEY` | کلید خصوصی SSH (کل محتوای فایل) |
+| `SSH_PASSWORD` | رمز عبور کاربر SSH |
 | `SSH_PORT` | اختیاری، پیش‌فرض `22` |
+
+> احراز هویت با رمز عبور انجام می‌شود. اگر بعداً خواستی به کلید SSH مهاجرت کنی، در
+> [`ci-cd.yml`](.github/workflows/ci-cd.yml) در هر دو مرحلهٔ deploy مقدار `password` را با `key`
+> عوض کن و به‌جای رمز، کلید خصوصی را در secret بگذار.
 | `DEPLOY_PATH` | مسیری روی سرور که `docker-compose.prod.yml` و `.env` در آن قرار می‌گیرند |
 
 **تنظیمات برنامه**

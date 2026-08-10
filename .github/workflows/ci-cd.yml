@@ -166,12 +166,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A missing secret otherwise surfaces only as "attempted methods [none]" from the ssh client,
+      # which says nothing about which one is at fault.
+      - name: Check the deploy secrets are usable
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -uo pipefail
+          failed=0
+
+          for name in SSH_HOST SSH_USER SSH_PASSWORD DEPLOY_PATH; do
+            eval "value=\${$name}"
+            if [ -z "$value" ]; then
+              echo "::error::Secret $name is empty or not set."
+              failed=1
+            fi
+          done
+
+          [ "$failed" -eq 0 ] || exit 1
+          echo "Deploy secrets look usable."
+
+      # Password auth, matching how the server is set up. To move to a key later, swap `password`
+      # for `key` here and in the step below, and store the private key instead.
       - name: Copy compose file to the server
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           source: docker-compose.prod.yml
           target: ${{ secrets.DEPLOY_PATH }}
@@ -185,7 +210,7 @@ jobs:
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT || 22 }}
           envs: API_IMAGE
           script_stop: true
