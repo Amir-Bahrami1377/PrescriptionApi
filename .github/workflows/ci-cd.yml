@@ -289,7 +289,17 @@ jobs:
 
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
             docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
+
+            # A structural change such as renaming the network makes compose delete the old one
+            # while containers it did not need to recreate are still attached, and they then fail
+            # to start — which is exactly how a rename took the whole stack down once. Retrying
+            # from a clean slate recovers it. `down` without -v keeps the named volumes, so the
+            # database and the issued certificates survive.
+            if ! docker compose -f docker-compose.prod.yml up -d; then
+              echo "up failed — recreating the stack (named volumes are preserved)" >&2
+              docker compose -f docker-compose.prod.yml down
+              docker compose -f docker-compose.prod.yml up -d
+            fi
             docker logout ghcr.io
 
             # Fail the deploy loudly if the new container never reports healthy, instead of leaving
