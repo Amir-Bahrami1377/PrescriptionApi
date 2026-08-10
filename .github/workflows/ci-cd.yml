@@ -220,6 +220,20 @@ jobs:
             fi
           done
 
+          # AES accepts only 16, 24 or 32 byte keys, but a key of any other length is still valid
+          # Base64 — so the application starts fine and only fails on the first national code it
+          # tries to encrypt, long after the deploy looked successful. Checked here, before anything
+          # is copied or restarted, so a bad key aborts while the running site stays untouched.
+          if [ -n "$COLUMN_ENCRYPTION_KEY" ]; then
+            key_bytes=$(printf '%s' "$COLUMN_ENCRYPTION_KEY" | base64 -d 2>/dev/null | wc -c | tr -d ' ')
+            case "$key_bytes" in
+              16|24|32) ;;
+              *)
+                echo "::error::COLUMN_ENCRYPTION_KEY must be Base64 of 16, 24 or 32 bytes (AES-128/192/256); it decodes to ${key_bytes} bytes. Generate one with: openssl rand -base64 32"
+                failed=1 ;;
+            esac
+          fi
+
           # Presigned URLs are signed for MINIO_PUBLIC_ENDPOINT, but only FILES_DOMAIN is actually
           # proxied and given a certificate. If they drift apart every download 404s or fails TLS,
           # and nothing notices until someone opens a test result.

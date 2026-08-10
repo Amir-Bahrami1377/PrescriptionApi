@@ -14,7 +14,37 @@ public sealed class AesColumnEncryptor(ColumnEncryptionOptions options) : IColum
     private const int NonceSizeBytes = 12;
     private const int TagSizeBytes = 16;
 
-    private readonly byte[] _key = Convert.FromBase64String(options.Key);
+    private readonly byte[] _key = DecodeKey(options.Key);
+
+    /// <summary>
+    /// Validated here rather than left to AesGcm, which is only reached on the first encrypt. A key
+    /// of the wrong length is still valid Base64, so the application would start happily and then
+    /// fail much later in the middle of a user action, with nothing pointing at the configuration.
+    /// </summary>
+    private static byte[] DecodeKey(string configuredKey)
+    {
+        byte[] key;
+        try
+        {
+            key = Convert.FromBase64String(configuredKey);
+        }
+        catch (FormatException exception)
+        {
+            throw new InvalidOperationException(
+                "ColumnEncryption:Key is not valid Base64. Generate one with: openssl rand -base64 32",
+                exception);
+        }
+
+        if (key.Length is not (16 or 24 or 32))
+        {
+            // The length is safe to report; the key itself never is.
+            throw new InvalidOperationException(
+                $"ColumnEncryption:Key must decode to 16, 24 or 32 bytes for AES-128/192/256, but decodes to {key.Length}. " +
+                "Generate one with: openssl rand -base64 32");
+        }
+
+        return key;
+    }
 
     public string Encrypt(string plainText)
     {

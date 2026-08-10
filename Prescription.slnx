@@ -32,6 +32,9 @@
   <Folder Name="/tests/IntegrationTests/">
     <Project Path="tests/IntegrationTests/Prescription.IntegrationTests.csproj" />
   </Folder>
+  <Folder Name="/tests/SharedKernel.Tests/">
+    <Project Path="tests/SharedKernel.Tests/Prescription.SharedKernel.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Modules.Identity.Tests/">
     <Project Path="tests/Modules.Identity.Tests/Prescription.Modules.Identity.Tests.csproj" />
   </Folder>
