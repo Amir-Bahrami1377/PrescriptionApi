@@ -168,22 +168,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # A missing secret otherwise surfaces only as "attempted methods [none]" from the ssh client,
-      # which says nothing about which one is at fault.
+      # Without this, a missing connection secret shows up only as "attempted methods [none]" from
+      # the ssh client, and a missing application secret only once compose refuses to interpolate
+      # it on the server — both a long way from naming the secret that actually needs fixing.
       - name: Check the deploy secrets are usable
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_USER: ${{ secrets.SSH_USER }}
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SEED_ADMIN_PHONE_NUMBER: ${{ secrets.SEED_ADMIN_PHONE_NUMBER }}
+          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+          COLUMN_ENCRYPTION_KEY: ${{ secrets.COLUMN_ENCRYPTION_KEY }}
+          MINIO_ACCESS_KEY: ${{ secrets.MINIO_ACCESS_KEY }}
+          MINIO_SECRET_KEY: ${{ secrets.MINIO_SECRET_KEY }}
+          MINIO_PUBLIC_ENDPOINT: ${{ secrets.MINIO_PUBLIC_ENDPOINT }}
+          ZARINPAL_MERCHANT_ID: ${{ secrets.ZARINPAL_MERCHANT_ID }}
+          MELIPAYAMAK_USERNAME: ${{ secrets.MELIPAYAMAK_USERNAME }}
+          MELIPAYAMAK_PASSWORD: ${{ secrets.MELIPAYAMAK_PASSWORD }}
+          MELIPAYAMAK_BODY_ID: ${{ secrets.MELIPAYAMAK_BODY_ID }}
+          MELIPAYAMAK_SENDER_NUMBER: ${{ secrets.MELIPAYAMAK_SENDER_NUMBER }}
         run: |
           set -uo pipefail
           failed=0
 
-          for name in SSH_HOST SSH_USER SSH_PASSWORD DEPLOY_PATH; do
+          required="SSH_HOST SSH_USER SSH_PASSWORD DEPLOY_PATH
+                    POSTGRES_PASSWORD SEED_ADMIN_PHONE_NUMBER JWT_SIGNING_KEY COLUMN_ENCRYPTION_KEY
+                    MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_PUBLIC_ENDPOINT
+                    ZARINPAL_MERCHANT_ID
+                    MELIPAYAMAK_USERNAME MELIPAYAMAK_PASSWORD MELIPAYAMAK_BODY_ID MELIPAYAMAK_SENDER_NUMBER"
+
+          for name in $required; do
             eval "value=\${$name}"
+
             if [ -z "$value" ]; then
               echo "::error::Secret $name is empty or not set."
+              failed=1
+              continue
+            fi
+
+            # Every secret below is written into a .env file as a single KEY=value line, so an
+            # embedded newline silently truncates the value and leaves a stray line behind. Only
+            # the line count is reported, never the value.
+            if [ "$(printf '%s\n' "$value" | wc -l)" -gt 1 ]; then
+              echo "::error::Secret $name contains a line break. Re-paste it as a single line — a multi-line value corrupts the .env written on the server."
               failed=1
             fi
           done
