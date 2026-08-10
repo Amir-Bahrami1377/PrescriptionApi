@@ -83,13 +83,10 @@ services:
       # On: presigned URLs are opened by a browser on an https page, where an http link is blocked.
       MinIO__PublicUseSsl: ${MINIO_PUBLIC_USE_SSL:-true}
       ZarinPal__MerchantId: ${ZARINPAL_MERCHANT_ID:?ZARINPAL_MERCHANT_ID is required}
-      # Required: without it nobody can request a login code, so there is no way into the site.
-      MeliPayamak__OtpApiKey: ${MELIPAYAMAK_OTP_API_KEY:?MELIPAYAMAK_OTP_API_KEY is required}
-      # Optional: these belong to the plain-SMS notification path, which nothing enqueues yet.
-      # Making them mandatory would block a deploy over a provider that is never invoked.
-      MeliPayamak__Username: ${MELIPAYAMAK_USERNAME:-}
-      MeliPayamak__Password: ${MELIPAYAMAK_PASSWORD:-}
-      MeliPayamak__SenderNumber: ${MELIPAYAMAK_SENDER_NUMBER:-}
+      # Required: login codes ride on this same SMS account, so without it nobody can sign in.
+      MeliPayamak__Username: ${MELIPAYAMAK_USERNAME:?MELIPAYAMAK_USERNAME is required}
+      MeliPayamak__Password: ${MELIPAYAMAK_PASSWORD:?MELIPAYAMAK_PASSWORD is required}
+      MeliPayamak__SenderNumber: ${MELIPAYAMAK_SENDER_NUMBER:?MELIPAYAMAK_SENDER_NUMBER is required}
     # Deliberately no published ports. Caddy is the only way in, which is also what makes clearing
     # KnownProxies in Program.cs safe — nothing else is positioned to forge X-Forwarded-* headers.
     healthcheck:

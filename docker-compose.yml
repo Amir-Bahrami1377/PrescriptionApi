@@ -68,10 +68,11 @@ services:
       MinIO__AccessKey: "minioadmin"
       MinIO__SecretKey: "minioadmin"
       MinIO__UseSsl: "false"
-      # Real OTP delivery locally: export MELIPAYAMAK_OTP_API_KEY in your shell before `up`. Left
-      # empty otherwise, and deliberately not written into appsettings.Development.json, which is
-      # committed. An empty key just means the send fails.
-      MeliPayamak__OtpApiKey: ${MELIPAYAMAK_OTP_API_KEY:-}
+      # Real SMS locally: export these in your shell before `up`. Deliberately not written into
+      # appsettings.Development.json, which is committed.
+      MeliPayamak__Username: ${MELIPAYAMAK_USERNAME:-dev-username}
+      MeliPayamak__Password: ${MELIPAYAMAK_PASSWORD:-dev-password}
+      MeliPayamak__SenderNumber: ${MELIPAYAMAK_SENDER_NUMBER:-50002000}
       # Jwt__SigningKey / ColumnEncryption__Key / remaining MeliPayamak__* / ZarinPal__* are dev-only
       # defaults baked into appsettings.Development.json; override them here for anything
       # beyond local development.

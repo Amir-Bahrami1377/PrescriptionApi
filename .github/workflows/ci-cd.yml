@@ -188,7 +188,9 @@ jobs:
           FILES_DOMAIN: ${{ secrets.FILES_DOMAIN }}
           ACME_EMAIL: ${{ secrets.ACME_EMAIL }}
           ZARINPAL_MERCHANT_ID: ${{ secrets.ZARINPAL_MERCHANT_ID }}
-          MELIPAYAMAK_OTP_API_KEY: ${{ secrets.MELIPAYAMAK_OTP_API_KEY }}
+          MELIPAYAMAK_USERNAME: ${{ secrets.MELIPAYAMAK_USERNAME }}
+          MELIPAYAMAK_PASSWORD: ${{ secrets.MELIPAYAMAK_PASSWORD }}
+          MELIPAYAMAK_SENDER_NUMBER: ${{ secrets.MELIPAYAMAK_SENDER_NUMBER }}
         run: |
           set -uo pipefail
           failed=0
@@ -198,7 +200,7 @@ jobs:
                     MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_PUBLIC_ENDPOINT
                     PUBLIC_DOMAIN FILES_DOMAIN ACME_EMAIL
                     ZARINPAL_MERCHANT_ID
-                    MELIPAYAMAK_OTP_API_KEY"
+                    MELIPAYAMAK_USERNAME MELIPAYAMAK_PASSWORD MELIPAYAMAK_SENDER_NUMBER"
 
           for name in $required; do
             eval "value=\${$name}"
@@ -280,7 +282,6 @@ jobs:
             MINIO_PUBLIC_ENDPOINT=${{ secrets.MINIO_PUBLIC_ENDPOINT }}
             MINIO_USE_SSL=${{ secrets.MINIO_USE_SSL || 'false' }}
             ZARINPAL_MERCHANT_ID=${{ secrets.ZARINPAL_MERCHANT_ID }}
-            MELIPAYAMAK_OTP_API_KEY=${{ secrets.MELIPAYAMAK_OTP_API_KEY }}
             MELIPAYAMAK_USERNAME=${{ secrets.MELIPAYAMAK_USERNAME }}
             MELIPAYAMAK_PASSWORD=${{ secrets.MELIPAYAMAK_PASSWORD }}
             MELIPAYAMAK_SENDER_NUMBER=${{ secrets.MELIPAYAMAK_SENDER_NUMBER }}

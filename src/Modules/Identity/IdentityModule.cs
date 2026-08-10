@@ -1,8 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Polly;
-using Polly.Extensions.Http;
 using Prescription.Modules.Identity.Infrastructure;
 using Prescription.Modules.Identity.Infrastructure.Jwt;
 using Prescription.Modules.Identity.Infrastructure.Otp;
@@ -24,21 +22,10 @@ public static class IdentityModule
 
         services.AddScoped<IOtpCodeStore, RedisOtpCodeStore>();
 
-        services.Configure<MeliPayamakOptions>(configuration.GetSection("MeliPayamak"));
-        services.AddHttpClient<IOtpProvider, MeliPayamakOtpProvider>((HttpClient client) =>
-            {
-                var options = configuration.GetSection("MeliPayamak").Get<MeliPayamakOptions>()
-                    ?? throw new InvalidOperationException("MeliPayamak configuration section is missing.");
-                client.BaseAddress = new Uri(options.BaseUrl);
-                client.Timeout = TimeSpan.FromSeconds(10);
-            })
-            .AddPolicyHandler(GetRetryPolicy());
+        // Delivery rides on the Notifications module's SMS provider, so there is a single gateway
+        // client, one set of credentials and one retry policy for every message sent.
+        services.AddScoped<IOtpProvider, SmsOtpProvider>();
 
         return services;
     }
-
-    private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
-        HttpPolicyExtensions
-            .HandleTransientHttpError()
-            .WaitAndRetryAsync(3, attempt => TimeSpan.FromSeconds(Math.Pow(2, attempt)));
 }
