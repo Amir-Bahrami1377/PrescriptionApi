@@ -16,7 +16,8 @@ public sealed class ListTestsHandler(CatalogDbContext dbContext) : IRequestHandl
         }
 
         return await query
-            .OrderBy(t => t.Name)
+            .OrderBy(t => t.DisplayOrder)
+            .ThenBy(t => t.Name)
             .Select(t => new LabTestDto(t.Id, t.Name, t.Description))
             .ToListAsync(cancellationToken);
     }

@@ -36,16 +36,25 @@ public static class CatalogSeeder
 
     public static async Task SeedLabTestsAsync(CatalogDbContext dbContext, CancellationToken cancellationToken = default)
     {
-        var existingNames = await dbContext.LabTests.Select(t => t.Name).ToListAsync(cancellationToken);
+        // Tracked, and matched one at a time rather than keyed into a dictionary, because nothing
+        // stops an admin from creating a second test with a name already in this list.
+        var existing = await dbContext.LabTests.ToListAsync(cancellationToken);
 
-        foreach (var (name, description) in LabTests)
+        for (var i = 0; i < LabTests.Length; i++)
         {
-            if (existingNames.Contains(name))
+            var (name, description) = LabTests[i];
+            var displayOrder = i + 1;
+
+            var test = existing.FirstOrDefault(t => t.Name == name);
+            if (test is not null)
             {
+                // Reapplied every startup so the order above stays authoritative: rearranging the
+                // array re-orders an existing catalogue too, not just a fresh database.
+                test.SetDisplayOrder(displayOrder);
                 continue;
             }
 
-            dbContext.LabTests.Add(LabTest.Create(name, description));
+            dbContext.LabTests.Add(LabTest.Create(name, description, displayOrder));
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
