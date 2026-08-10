@@ -23,7 +23,7 @@ public sealed class InitiatePaymentEndpoint : IEndpoint
                 }
 
                 var callbackUrl = $"{httpRequest.Scheme}://{httpRequest.Host}/api/orders/{id}/payment/callback";
-                var command = new InitiatePaymentCommand(id, customerId, callbackUrl);
+                var command = new InitiatePaymentCommand(id, customerId, callbackUrl, currentUser.PhoneNumber);
                 var response = await sender.Send(command, cancellationToken);
 
                 return Results.Ok(response);

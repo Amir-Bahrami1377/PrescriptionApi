@@ -72,4 +72,31 @@ public class ZarinPalPaymentGatewayTests
         result.Success.Should().BeFalse();
         result.ReferenceId.Should().BeNull();
     }
+
+    [Fact]
+    public async Task RequestPaymentAsync_WithPayerMobile_SendsItAsMetadata()
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, """{"data":{"code":100,"authority":"S000000000000000000000000000123456"},"errors":[]}""");
+        var gateway = CreateGateway(handler);
+
+        await gateway.RequestPaymentAsync(new PaymentRequest(100_000, "https://example.com/callback", "test", "09123456789"));
+
+        handler.LastRequestBody.Should().Contain("\"mobile\":\"09123456789\"");
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RequestPaymentAsync_WithoutPayerMobile_OmitsMetadataEntirely(string? payerMobile)
+    {
+        var handler = new FakeHttpMessageHandler(HttpStatusCode.OK, """{"data":{"code":100,"authority":"S000000000000000000000000000123456"},"errors":[]}""");
+        var gateway = CreateGateway(handler);
+
+        await gateway.RequestPaymentAsync(new PaymentRequest(100_000, "https://example.com/callback", "test", payerMobile));
+
+        // Sending metadata with a blank mobile makes ZarinPal reject the whole request with
+        // "The metadata.mobile must be a string" (code -9), which is how this surfaced live.
+        handler.LastRequestBody.Should().NotContain("\"mobile\"");
+    }
 }

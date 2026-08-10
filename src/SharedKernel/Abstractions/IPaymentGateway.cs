@@ -11,7 +11,7 @@ public interface IPaymentGateway
     Task<PaymentVerificationResult> VerifyPaymentAsync(PaymentVerification verification, CancellationToken cancellationToken = default);
 }
 
-public sealed record PaymentRequest(long AmountInRials, string CallbackUrl, string Description, string PayerMobile);
+public sealed record PaymentRequest(long AmountInRials, string CallbackUrl, string Description, string? PayerMobile);
 
 public sealed record PaymentRequestResult(bool Success, string? Authority, string? PaymentRedirectUrl, string? ErrorMessage);
 

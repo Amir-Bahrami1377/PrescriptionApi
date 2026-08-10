@@ -23,7 +23,7 @@ public sealed class InitiateRenewalPaymentEndpoint : IEndpoint
                 }
 
                 var callbackUrl = $"{httpRequest.Scheme}://{httpRequest.Host}/api/renewals/{id}/payment/callback";
-                var command = new InitiateRenewalPaymentCommand(id, customerId, callbackUrl);
+                var command = new InitiateRenewalPaymentCommand(id, customerId, callbackUrl, currentUser.PhoneNumber);
                 var response = await sender.Send(command, cancellationToken);
 
                 return Results.Ok(response);

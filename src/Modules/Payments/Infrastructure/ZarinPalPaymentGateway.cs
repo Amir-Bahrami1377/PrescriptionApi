@@ -13,12 +13,18 @@ public sealed class ZarinPalPaymentGateway(HttpClient httpClient, IOptions<Zarin
 
     public async Task<PaymentRequestResult> RequestPaymentAsync(PaymentRequest request, CancellationToken cancellationToken = default)
     {
+        // ZarinPal rejects the request outright if metadata.mobile is present but empty, so the
+        // block is omitted entirely rather than sent blank when we have no number for the payer.
+        var metadata = string.IsNullOrWhiteSpace(request.PayerMobile)
+            ? null
+            : new ZarinPalMetadata(request.PayerMobile);
+
         var payload = new ZarinPalRequestPayload(
             _options.MerchantId,
             request.AmountInRials,
             request.CallbackUrl,
             request.Description,
-            new ZarinPalMetadata(request.PayerMobile));
+            metadata);
 
         var response = await httpClient.PostAsJsonAsync("request.json", payload, cancellationToken);
         var body = await response.Content.ReadFromJsonAsync<ZarinPalRequestResponse>(cancellationToken);
@@ -55,7 +61,7 @@ public sealed class ZarinPalPaymentGateway(HttpClient httpClient, IOptions<Zarin
         [property: JsonPropertyName("amount")] long Amount,
         [property: JsonPropertyName("callback_url")] string CallbackUrl,
         [property: JsonPropertyName("description")] string Description,
-        [property: JsonPropertyName("metadata")] ZarinPalMetadata Metadata);
+        [property: JsonPropertyName("metadata")] ZarinPalMetadata? Metadata);
 
     private sealed record ZarinPalMetadata([property: JsonPropertyName("mobile")] string Mobile);
 

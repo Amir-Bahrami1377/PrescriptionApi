@@ -20,7 +20,7 @@ public sealed class InitiateRenewalPaymentHandler(OrdersDbContext dbContext, IPa
             throw new UnauthorizedDomainException("این درخواست متعلق به شما نیست.");
         }
 
-        var paymentRequest = new PaymentRequest(renewal.RequirePrice(), request.CallbackUrl, "پرداخت هزینه تمدید نسخه", string.Empty);
+        var paymentRequest = new PaymentRequest(renewal.RequirePrice(), request.CallbackUrl, "پرداخت هزینه تمدید نسخه", request.PayerMobile);
         var result = await paymentGateway.RequestPaymentAsync(paymentRequest, cancellationToken);
 
         if (!result.Success || result.Authority is null || result.PaymentRedirectUrl is null)

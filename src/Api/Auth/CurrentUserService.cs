@@ -18,5 +18,7 @@ public sealed class CurrentUserService(IHttpContextAccessor httpContextAccessor)
 
     public string? Role => Principal?.FindFirstValue(ClaimTypes.Role);
 
+    public string? PhoneNumber => Principal?.FindFirstValue(ClaimTypes.MobilePhone);
+
     public bool IsAuthenticated => Principal?.Identity?.IsAuthenticated ?? false;
 }
