@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
+using Prescription.Modules.Orders.Infrastructure.Notifications;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Exceptions;
@@ -10,7 +11,8 @@ namespace Prescription.Modules.Orders.Features.CreateOrder;
 public sealed class CreateOrderHandler(
     OrdersDbContext dbContext,
     ICatalogLookup catalogLookup,
-    IFileStorageService fileStorageService)
+    IFileStorageService fileStorageService,
+    IOrderStatusNotifier orderStatusNotifier)
     : IRequestHandler<CreateOrderCommand, CreateOrderResponse>
 {
     public async Task<CreateOrderResponse> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -59,6 +61,8 @@ public sealed class CreateOrderHandler(
 
         dbContext.Orders.Add(order);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await orderStatusNotifier.NotifyCustomerAsync(order, cancellationToken);
 
         return new CreateOrderResponse(order.Id, order.Status.ToString());
     }

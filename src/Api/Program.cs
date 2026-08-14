@@ -20,6 +20,7 @@ using Prescription.Modules.Identity;
 using Prescription.Modules.Identity.Infrastructure.Persistence;
 using Prescription.Modules.Notifications;
 using Prescription.Modules.Orders;
+using Prescription.Modules.Orders.Features.NotifyDoctorsOfUnclaimedOrders;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.Modules.Payments;
 using Prescription.Modules.Ticketing;
@@ -176,6 +177,15 @@ using (var seedScope = app.Services.CreateScope())
     }
 
     await CatalogSeeder.SeedLabTestsAsync(seedScope.ServiceProvider.GetRequiredService<CatalogDbContext>());
+}
+
+// Every 5 minutes so the 15-minute unclaimed-order threshold is never missed by more than one run.
+using (var recurringJobScope = app.Services.CreateScope())
+{
+    recurringJobScope.ServiceProvider.GetRequiredService<IRecurringJobManager>().AddOrUpdate<INotifyDoctorsOfUnclaimedOrdersJob>(
+        "notify-doctors-of-unclaimed-orders",
+        job => job.RunAsync(CancellationToken.None),
+        "*/5 * * * *");
 }
 
 // Must run before anything that reads the scheme, host or client address.

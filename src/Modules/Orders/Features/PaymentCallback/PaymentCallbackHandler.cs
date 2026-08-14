@@ -1,13 +1,17 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
+using Prescription.Modules.Orders.Infrastructure.Notifications;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Exceptions;
 
 namespace Prescription.Modules.Orders.Features.PaymentCallback;
 
-public sealed class PaymentCallbackHandler(OrdersDbContext dbContext, IPaymentGateway paymentGateway)
+public sealed class PaymentCallbackHandler(
+    OrdersDbContext dbContext,
+    IPaymentGateway paymentGateway,
+    IOrderStatusNotifier orderStatusNotifier)
     : IRequestHandler<PaymentCallbackCommand, PaymentCallbackResponse>
 {
     public async Task<PaymentCallbackResponse> Handle(PaymentCallbackCommand request, CancellationToken cancellationToken)
@@ -42,6 +46,8 @@ public sealed class PaymentCallbackHandler(OrdersDbContext dbContext, IPaymentGa
 
         order.ConfirmPayment(result.ReferenceId);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await orderStatusNotifier.NotifyCustomerAsync(order, cancellationToken);
 
         return new PaymentCallbackResponse(true, result.ReferenceId);
     }

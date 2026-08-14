@@ -44,6 +44,10 @@ public sealed class Order : AuditableEntity
     public Guid? ClaimedByDoctorId { get; private set; }
     public DateTimeOffset? ClaimExpiresAtUtc { get; private set; }
 
+    /// <summary>Set once the unclaimed-order reminder job has texted doctors about this order, so it
+    /// never sends a second SMS for the same order even if it is still unclaimed on the next run.</summary>
+    public DateTimeOffset? UnclaimedNotificationSentAtUtc { get; private set; }
+
     public string? PaymentAuthority { get; private set; }
     public string? PaymentReferenceId { get; private set; }
 
@@ -176,6 +180,15 @@ public sealed class Order : AuditableEntity
         {
             throw new ConflictException("پیش از تایید یا رد سفارش، ابتدا باید درخواست بررسی برای آن ثبت کنید.");
         }
+    }
+
+    /// <summary>Marks that doctors have already been texted about this order sitting unclaimed, so the
+    /// reminder job's next pass skips it. Not gated on Status or the claim fields — the job itself
+    /// decides which orders qualify; this method only records that the SMS went out.</summary>
+    public void MarkUnclaimedNotificationSent()
+    {
+        UnclaimedNotificationSentAtUtc = DateTimeOffset.UtcNow;
+        Touch();
     }
 
     public void AttachPrescriptionReference(string prescriptionReferenceNumber)

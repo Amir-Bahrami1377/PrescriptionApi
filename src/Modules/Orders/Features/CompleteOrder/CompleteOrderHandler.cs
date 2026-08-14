@@ -1,12 +1,14 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
+using Prescription.Modules.Orders.Infrastructure.Notifications;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.SharedKernel.Exceptions;
 
 namespace Prescription.Modules.Orders.Features.CompleteOrder;
 
-public sealed class CompleteOrderHandler(OrdersDbContext dbContext) : IRequestHandler<CompleteOrderCommand>
+public sealed class CompleteOrderHandler(OrdersDbContext dbContext, IOrderStatusNotifier orderStatusNotifier)
+    : IRequestHandler<CompleteOrderCommand>
 {
     public async Task Handle(CompleteOrderCommand request, CancellationToken cancellationToken)
     {
@@ -16,5 +18,7 @@ public sealed class CompleteOrderHandler(OrdersDbContext dbContext) : IRequestHa
         order.Complete();
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await orderStatusNotifier.NotifyCustomerAsync(order, cancellationToken);
     }
 }

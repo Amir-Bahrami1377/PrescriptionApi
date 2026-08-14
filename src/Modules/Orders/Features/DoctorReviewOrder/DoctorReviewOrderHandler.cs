@@ -1,13 +1,17 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Prescription.Modules.Orders.Domain;
+using Prescription.Modules.Orders.Infrastructure.Notifications;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Exceptions;
 
 namespace Prescription.Modules.Orders.Features.DoctorReviewOrder;
 
-public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext, IIdentityLookup identityLookup)
+public sealed class DoctorReviewOrderHandler(
+    OrdersDbContext dbContext,
+    IIdentityLookup identityLookup,
+    IOrderStatusNotifier orderStatusNotifier)
     : IRequestHandler<DoctorReviewOrderCommand>
 {
     public async Task Handle(DoctorReviewOrderCommand request, CancellationToken cancellationToken)
@@ -36,5 +40,7 @@ public sealed class DoctorReviewOrderHandler(OrdersDbContext dbContext, IIdentit
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await orderStatusNotifier.NotifyCustomerAsync(order, cancellationToken);
     }
 }

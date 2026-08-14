@@ -22,4 +22,22 @@ internal sealed class IdentityLookup(IdentityDbContext dbContext) : IIdentityLoo
             .AsNoTracking()
             .AnyAsync(u => u.Id == userId && u.IsActive && u.IsSpecialPatient, cancellationToken);
     }
+
+    public async Task<string?> GetPhoneNumberAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Id == userId && u.IsActive)
+            .Select(u => u.PhoneNumber)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<string>> GetActiveDoctorPhoneNumbersAsync(CancellationToken cancellationToken = default)
+    {
+        return await dbContext.Users
+            .AsNoTracking()
+            .Where(u => u.Role == UserRole.Doctor && u.IsActive)
+            .Select(u => u.PhoneNumber)
+            .ToListAsync(cancellationToken);
+    }
 }
