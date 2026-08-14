@@ -4,28 +4,28 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Prescription.SharedKernel.Abstractions;
 
-namespace Prescription.Modules.Ticketing.Features.GetTicket;
+namespace Prescription.Modules.Ticketing.Features.ReopenTicket;
 
-public sealed class GetTicketEndpoint : IEndpoint
+public sealed class ReopenTicketEndpoint : IEndpoint
 {
     public void MapEndpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/tickets/{id:guid}", async (
+        app.MapPost("/api/tickets/{id:guid}/reopen", async (
                 Guid id,
                 ICurrentUserService currentUser,
                 ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                if (currentUser.UserId is not { } userId || currentUser.Role is not { } role)
+                if (currentUser.UserId is not { } customerId)
                 {
                     return Results.Unauthorized();
                 }
 
-                var response = await sender.Send(new GetTicketQuery(id, userId, role), cancellationToken);
-                return Results.Ok(response);
+                await sender.Send(new ReopenTicketCommand(id, customerId), cancellationToken);
+                return Results.NoContent();
             })
-            .WithName("GetTicket")
+            .WithName("ReopenTicket")
             .WithTags("Ticketing")
-            .RequireAuthorization(policy => policy.RequireRole("Customer", "Admin"));
+            .RequireAuthorization(policy => policy.RequireRole("Customer"));
     }
 }

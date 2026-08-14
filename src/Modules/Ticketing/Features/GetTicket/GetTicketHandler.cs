@@ -17,18 +17,22 @@ public sealed class GetTicketHandler(TicketingDbContext dbContext) : IRequestHan
             ?? throw new NotFoundException(nameof(Ticket), request.TicketId);
 
         var isOwner = ticket.CustomerId == request.RequestingUserId;
-        var isStaff = request.RequestingUserRole is "Doctor" or "Admin";
+        var isAdmin = request.RequestingUserRole == "Admin";
 
-        if (!isOwner && !isStaff)
+        if (!isOwner && !isAdmin)
         {
             throw new UnauthorizedDomainException("این تیکت متعلق به شما نیست.");
         }
 
         return new TicketDetailDto(
             ticket.Id,
+            ticket.CustomerId,
             ticket.Subject,
             ticket.Status.ToString(),
             ticket.CreatedAtUtc,
+            ticket.UpdatedAtUtc,
+            ticket.QueuedForClosureAtUtc,
+            ticket.AutoCloseAtUtc,
             ticket.ClosedAtUtc,
             ticket.Messages
                 .OrderBy(m => m.CreatedAtUtc)

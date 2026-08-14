@@ -30,6 +30,6 @@ public sealed class ReplyTicketEndpoint : IEndpoint
             })
             .WithName("ReplyTicket")
             .WithTags("Ticketing")
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("Customer", "Admin"));
     }
 }

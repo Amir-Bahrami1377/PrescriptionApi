@@ -21,6 +21,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
     private readonly RedisContainer _redis = new RedisBuilder().Build();
 
     public FakeOtpProvider FakeOtpProvider { get; } = new();
+    public FakeNotificationQueue FakeNotificationQueue { get; } = new();
 
     public async Task InitializeAsync()
     {
@@ -44,6 +45,7 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
         Environment.SetEnvironmentVariable("MinIO__AccessKey", "minioadmin");
         Environment.SetEnvironmentVariable("MinIO__SecretKey", "minioadmin");
         Environment.SetEnvironmentVariable("MinIO__UseSsl", "false");
+        Environment.SetEnvironmentVariable("Seed__AdminPhoneNumber", "09351112233");
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -62,6 +64,8 @@ public sealed class CustomWebApplicationFactory : WebApplicationFactory<Program>
             // is registered against dummy config above but never invoked by the Identity-only flow.
             services.RemoveAll<IOtpProvider>();
             services.AddSingleton<IOtpProvider>(FakeOtpProvider);
+            services.RemoveAll<INotificationQueue>();
+            services.AddSingleton<INotificationQueue>(FakeNotificationQueue);
         });
     }
 }

@@ -24,6 +24,7 @@ using Prescription.Modules.Orders.Features.NotifyDoctorsOfUnclaimedOrders;
 using Prescription.Modules.Orders.Infrastructure.Persistence;
 using Prescription.Modules.Payments;
 using Prescription.Modules.Ticketing;
+using Prescription.Modules.Ticketing.Features.CloseExpiredTickets;
 using Prescription.Modules.Ticketing.Infrastructure.Persistence;
 using Prescription.SharedKernel.Abstractions;
 using Prescription.SharedKernel.Behaviors;
@@ -182,10 +183,19 @@ using (var seedScope = app.Services.CreateScope())
 // Every 5 minutes so the 15-minute unclaimed-order threshold is never missed by more than one run.
 using (var recurringJobScope = app.Services.CreateScope())
 {
-    recurringJobScope.ServiceProvider.GetRequiredService<IRecurringJobManager>().AddOrUpdate<INotifyDoctorsOfUnclaimedOrdersJob>(
+    var recurringJobs = recurringJobScope.ServiceProvider.GetRequiredService<IRecurringJobManager>();
+
+    recurringJobs.AddOrUpdate<INotifyDoctorsOfUnclaimedOrdersJob>(
         "notify-doctors-of-unclaimed-orders",
         job => job.RunAsync(CancellationToken.None),
         "*/5 * * * *");
+
+    // Pending support tickets are checked every minute. A customer reply cancels the deadline,
+    // otherwise the ticket closes once its six-hour grace period has elapsed.
+    recurringJobs.AddOrUpdate<ICloseExpiredTicketsJob>(
+        "close-expired-support-tickets",
+        job => job.RunAsync(CancellationToken.None),
+        "* * * * *");
 }
 
 // Must run before anything that reads the scheme, host or client address.

@@ -16,17 +16,17 @@ public sealed class CloseTicketEndpoint : IEndpoint
                 ISender sender,
                 CancellationToken cancellationToken) =>
             {
-                if (currentUser.UserId is not { } userId || currentUser.Role is not { } role)
+                if (currentUser.UserId is not { } customerId)
                 {
                     return Results.Unauthorized();
                 }
 
-                var command = new CloseTicketCommand(id, userId, role);
+                var command = new CloseTicketCommand(id, customerId);
                 await sender.Send(command, cancellationToken);
                 return Results.NoContent();
             })
             .WithName("CloseTicket")
             .WithTags("Ticketing")
-            .RequireAuthorization();
+            .RequireAuthorization(policy => policy.RequireRole("Customer"));
     }
 }

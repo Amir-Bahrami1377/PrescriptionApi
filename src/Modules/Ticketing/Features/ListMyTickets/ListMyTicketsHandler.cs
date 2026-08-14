@@ -12,8 +12,16 @@ public sealed class ListMyTicketsHandler(TicketingDbContext dbContext)
         return await dbContext.Tickets
             .AsNoTracking()
             .Where(t => t.CustomerId == request.CustomerId)
-            .OrderByDescending(t => t.CreatedAtUtc)
-            .Select(t => new TicketSummaryDto(t.Id, t.Subject, t.Status.ToString(), t.CreatedAtUtc))
+            .OrderByDescending(t => t.UpdatedAtUtc ?? t.CreatedAtUtc)
+            .Select(t => new TicketSummaryDto(
+                t.Id,
+                t.Subject,
+                t.Status.ToString(),
+                t.Messages.Count,
+                t.CreatedAtUtc,
+                t.UpdatedAtUtc,
+                t.AutoCloseAtUtc,
+                t.ClosedAtUtc))
             .ToListAsync(cancellationToken);
     }
 }

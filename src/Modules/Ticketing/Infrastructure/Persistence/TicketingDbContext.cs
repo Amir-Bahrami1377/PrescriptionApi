@@ -19,6 +19,7 @@ public sealed class TicketingDbContext(DbContextOptions<TicketingDbContext> opti
             builder.Property(t => t.Subject).HasMaxLength(300).IsRequired();
             builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20);
             builder.HasIndex(t => t.CustomerId);
+            builder.HasIndex(t => new { t.Status, t.AutoCloseAtUtc });
 
             builder.Property(t => t.RowVersion)
                 .HasColumnName("xmin")

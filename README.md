@@ -1,4 +1,7 @@
 # Prescription
+
+قرارداد endpointها و گردش وضعیت بخش تیکت برای فرانت‌اند در
+[`docs/frontend-ticketing-api.md`](docs/frontend-ticketing-api.md) مستند شده است.
 وبسایت تمدید نسخه آنلاین و ثبت آزمایش
 
 ## CI/CD

@@ -41,6 +41,9 @@
   <Folder Name="/tests/Modules.Orders.Tests/">
     <Project Path="tests/Modules.Orders.Tests/Prescription.Modules.Orders.Tests.csproj" />
   </Folder>
+  <Folder Name="/tests/Modules.Ticketing.Tests/">
+    <Project Path="tests/Modules.Ticketing.Tests/Prescription.Modules.Ticketing.Tests.csproj" />
+  </Folder>
   <Folder Name="/tests/Modules.Payments.Tests/">
     <Project Path="tests/Modules.Payments.Tests/Prescription.Modules.Payments.Tests.csproj" />
   </Folder>

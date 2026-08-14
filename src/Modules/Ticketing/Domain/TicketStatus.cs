@@ -3,5 +3,6 @@ namespace Prescription.Modules.Ticketing.Domain;
 public enum TicketStatus
 {
     Open = 0,
-    Closed = 1,
+    PendingClosure = 1,
+    Closed = 2,
 }
